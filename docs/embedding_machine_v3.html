@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The Embedding Machine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream:   #faf8f4;
+  --paper:   #f3efe6;
+  --white:   #fffefb;
+  --border:  #e4ddd0;
+  --border2: #cec5b5;
+  --ink:     #1c1812;
+  --ink2:    #5a5045;
+  --ink3:    #9a8f80;
+  --amber:   #c97c0a;
+  --amber-l: #fdf0d4;
+  --amber-m: #f5c96a;
+  --teal:    #0f7a6d;
+  --teal-l:  #d4f0eb;
+  --red:     #b83232;
+  --red-l:   #fde8e6;
+  --sans: 'DM Sans', sans-serif;
+  --mono: 'DM Mono', monospace;
+  --serif: 'Playfair Display', serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--cream);color:var(--ink);font-family:var(--sans);font-size:14px}
+
+/* noise */
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.03'/%3E%3C/svg%3E") repeat;
+  background-size:180px;opacity:.45}
+
+/* header */
+header{height:56px;display:flex;align-items:center;padding:0 1.5rem;
+  border-bottom:1px solid var(--border);background:var(--white);
+  gap:1rem;flex-shrink:0}
+.logo{font-family:var(--serif);font-size:1.5rem;font-weight:900;letter-spacing:-.02em;line-height:1}
+.logo em{color:var(--amber);font-style:italic}
+.tagline{font-family:var(--mono);font-size:.68rem;color:var(--ink3);letter-spacing:.06em}
+header .spacer{flex:1}
+#book-count-badge{font-family:var(--mono);font-size:.7rem;color:var(--amber);
+  background:var(--amber-l);padding:3px 10px;border-radius:20px;
+  border:1px solid var(--amber-m);display:none}
+
+/* layout */
+.app{display:grid;grid-template-columns:320px 1fr;height:calc(100vh - 56px)}
+
+/* ── LEFT PANEL ── */
+.left-panel{border-right:1px solid var(--border);background:var(--paper);
+  display:flex;flex-direction:column;overflow:hidden}
+
+.panel-tabs{display:flex;border-bottom:1px solid var(--border)}
+.tab{flex:1;padding:.6rem;text-align:center;font-family:var(--mono);
+  font-size:.65rem;letter-spacing:.1em;text-transform:uppercase;
+  cursor:pointer;color:var(--ink3);border-bottom:2px solid transparent;
+  transition:all .15s ease;background:transparent;border:none;
+  border-bottom:2px solid transparent}
+.tab.active{color:var(--amber);border-bottom-color:var(--amber);background:var(--white)}
+
+/* input form */
+.form-pane{flex:1;overflow-y:auto;padding:1rem}
+.form-pane::-webkit-scrollbar{width:3px}
+.form-pane::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+.field-label{font-family:var(--mono);font-size:.62rem;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink3);margin-bottom:.35rem;display:block}
+.field-group{margin-bottom:.9rem}
+input[type=text],textarea{width:100%;background:var(--white);
+  border:1.5px solid var(--border);border-radius:8px;
+  padding:.55rem .7rem;font-family:var(--sans);font-size:.82rem;color:var(--ink);
+  outline:none;transition:border-color .15s ease,box-shadow .15s ease;resize:none}
+input[type=text]:focus,textarea:focus{border-color:var(--amber);
+  box-shadow:0 0 0 3px rgba(201,124,10,.1)}
+textarea{line-height:1.5;min-height:110px}
+.char-count{font-family:var(--mono);font-size:.6rem;color:var(--ink3);
+  text-align:right;margin-top:.25rem}
+
+.title-row{display:flex;gap:.4rem;align-items:stretch}
+.title-row input{flex:1}
+.lookup-btn{flex-shrink:0;width:36px;border-radius:8px;
+  border:1.5px solid var(--border);background:var(--white);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:.95rem;transition:all .15s ease;color:var(--ink2)}
+.lookup-btn:hover:not(:disabled){border-color:var(--amber);background:var(--amber-l);color:var(--amber)}
+.lookup-btn:disabled{opacity:.4;cursor:not-allowed}
+.lookup-btn.loading{border-color:var(--amber);background:var(--amber-l)}
+.lookup-btn.loading .btn-icon{display:none}
+.lookup-btn .spinner{display:none;width:13px;height:13px;
+  border:2px solid var(--amber-m);border-top-color:var(--amber);
+  border-radius:50%;animation:spin .7s linear infinite}
+.lookup-btn.loading .spinner{display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lookup-status{font-family:var(--mono);font-size:.58rem;margin-top:.25rem;
+  min-height:.9rem;color:var(--ink3)}
+
+.submit-btn{width:100%;padding:.65rem;border-radius:8px;border:none;
+  background:var(--ink);color:var(--cream);font-family:var(--sans);
+  font-size:.85rem;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:.5rem;
+  transition:all .15s ease}
+.submit-btn:hover:not(:disabled){background:var(--amber);transform:translateY(-1px);
+  box-shadow:0 4px 14px rgba(201,124,10,.25)}
+.submit-btn:disabled{opacity:.45;cursor:not-allowed}
+.submit-btn .arrow{font-size:1rem;transition:transform .2s ease}
+.submit-btn:hover:not(:disabled) .arrow{transform:translateX(3px)}
+
+.or-divider{display:flex;align-items:center;gap:.6rem;margin:.8rem 0;
+  font-family:var(--mono);font-size:.6rem;color:var(--ink3)}
+.or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* example seeds */
+.seed-label{font-family:var(--mono);font-size:.6rem;color:var(--ink3);
+  letter-spacing:.1em;text-transform:uppercase;margin-bottom:.5rem}
+.seed-pills{display:flex;flex-wrap:wrap;gap:.4rem}
+.seed-pill{font-size:.7rem;padding:3px 9px;border-radius:20px;
+  border:1px solid var(--border2);color:var(--ink2);background:var(--white);
+  cursor:pointer;font-family:var(--mono);transition:all .15s ease}
+.seed-pill:hover{border-color:var(--amber);color:var(--amber);background:var(--amber-l)}
+
+/* added books pane */
+.books-pane{flex:1;overflow-y:auto;padding:.6rem .8rem}
+.books-pane::-webkit-scrollbar{width:3px}
+.books-pane::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.books-empty{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;height:100%;gap:.5rem;color:var(--ink3);
+  font-family:var(--mono);font-size:.72rem;text-align:center}
+.added-card{background:var(--white);border:1.5px solid var(--border);
+  border-radius:9px;padding:.65rem .8rem;margin-bottom:.5rem;
+  display:flex;align-items:center;gap:.6rem;position:relative}
+.added-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0}
+.added-info{flex:1;min-width:0}
+.added-title{font-size:.8rem;font-weight:500;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+.added-abstract{font-size:.68rem;color:var(--ink3);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.remove-btn{width:18px;height:18px;border-radius:50%;border:1px solid var(--border2);
+  background:transparent;color:var(--ink3);font-size:.7rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  transition:all .15s ease}
+.remove-btn:hover{background:var(--red-l);border-color:var(--red);color:var(--red)}
+
+/* reset row */
+.reset-row{padding:.5rem .8rem;border-top:1px solid var(--border)}
+.reset-row button{width:100%;padding:.45rem;border-radius:7px;
+  border:1px solid var(--border2);background:transparent;color:var(--ink3);
+  font-family:var(--mono);font-size:.65rem;cursor:pointer;letter-spacing:.05em;
+  transition:all .15s ease}
+.reset-row button:hover{border-color:var(--red);color:var(--red);background:var(--red-l)}
+
+/* ── RIGHT PANEL ── */
+.right-panel{display:grid;grid-template-rows:auto 1fr;overflow:hidden}
+
+/* machine bar */
+.machine-bar{background:var(--white);border-bottom:1px solid var(--border);
+  padding:1rem 1.5rem;display:flex;align-items:flex-start;gap:1.2rem}
+
+.machine-box{width:220px;min-width:220px;
+  border:1.5px solid var(--border);border-radius:12px;
+  background:var(--paper);padding:1rem;
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:.4rem;min-height:130px;
+  position:relative;overflow:hidden;transition:all .3s ease}
+.machine-box.active{border-color:var(--amber);background:var(--amber-l)}
+.machine-icon{font-size:2rem;line-height:1;transition:all .3s ease}
+.machine-status{font-family:var(--mono);font-size:.68rem;color:var(--ink2);
+  text-align:center;line-height:1.6}
+.machine-status b{color:var(--ink);font-weight:500}
+.machine-progress{position:absolute;bottom:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--amber),#f5a623,var(--amber));
+  background-size:200%;animation:sweep 1s linear infinite;display:none}
+.machine-box.active .machine-progress{display:block}
+@keyframes sweep{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* vector panel */
+.vec-panel{flex:1;border:1.5px solid var(--border);border-radius:12px;
+  background:var(--paper);padding:.9rem 1rem;min-height:130px;
+  display:flex;flex-direction:column;gap:.5rem;overflow:hidden}
+.vec-top-label{font-family:var(--mono);font-size:.58rem;color:var(--ink3);
+  letter-spacing:.15em;text-transform:uppercase}
+.vec-title{font-family:var(--serif);font-size:1rem;font-weight:700;color:var(--ink);line-height:1.2}
+.vec-values{font-family:var(--mono);font-size:.68rem;color:var(--teal);
+  background:var(--teal-l);border-radius:6px;padding:.5rem .65rem;
+  line-height:1.8;word-break:break-all;flex:1}
+.vec-idle{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;gap:.4rem;font-family:var(--mono);font-size:.72rem;color:var(--ink3)}
+
+/* how-it-works pills */
+.how-pills{display:flex;flex-direction:column;gap:.4rem;min-width:160px}
+.how-pill{background:var(--paper);border:1px solid var(--border);
+  border-radius:8px;padding:.5rem .7rem;font-size:.7rem;color:var(--ink2);line-height:1.5}
+.how-pill b{font-family:var(--mono);font-size:.6rem;color:var(--amber);
+  display:block;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px}
+
+/* ── PLOT ── */
+.plot-wrap{display:grid;grid-template-columns:1fr 260px;overflow:hidden;background:var(--cream)}
+.plot-svg-area{position:relative;overflow:hidden}
+.plot-header{position:absolute;top:.9rem;left:1.2rem;z-index:2;
+  font-family:var(--mono);font-size:.6rem;color:var(--ink3);letter-spacing:.15em;text-transform:uppercase}
+
+/* ── SEARCH PANEL ── */
+.search-panel{border-left:1px solid var(--border);background:var(--white);
+  display:flex;flex-direction:column;overflow:hidden}
+.search-panel-header{padding:.75rem 1rem;border-bottom:1px solid var(--border);
+  font-family:var(--mono);font-size:.6rem;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--ink3);display:flex;align-items:center;gap:.5rem}
+.search-panel-header span{color:var(--amber)}
+.search-body{padding:.8rem;display:flex;flex-direction:column;gap:.6rem;flex-shrink:0}
+.search-textarea{width:100%;background:var(--paper);border:1.5px solid var(--border);
+  border-radius:8px;padding:.55rem .7rem;font-family:var(--sans);font-size:.78rem;
+  color:var(--ink);outline:none;resize:none;line-height:1.5;min-height:80px;
+  transition:border-color .15s,box-shadow .15s}
+.search-textarea:focus{border-color:var(--amber);box-shadow:0 0 0 3px rgba(201,124,10,.1)}
+.search-btn{width:100%;padding:.55rem;border-radius:8px;border:none;
+  background:var(--ink);color:var(--cream);font-family:var(--sans);font-size:.8rem;
+  font-weight:600;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;gap:.4rem;transition:all .15s ease}
+.search-btn:hover:not(:disabled){background:var(--amber);transform:translateY(-1px);
+  box-shadow:0 3px 12px rgba(201,124,10,.25)}
+.search-btn:disabled{opacity:.4;cursor:not-allowed}
+.search-divider{height:1px;background:var(--border);margin:0 .8rem}
+.results-area{flex:1;overflow-y:auto;padding:.6rem .8rem}
+.results-area::-webkit-scrollbar{width:3px}
+.results-area::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.results-idle{display:flex;flex-direction:column;align-items:center;
+  justify-content:center;height:100%;gap:.5rem;text-align:center;
+  font-family:var(--mono);font-size:.68rem;color:var(--ink3)}
+.result-card{background:var(--paper);border:1.5px solid var(--border);
+  border-radius:9px;padding:.6rem .75rem;margin-bottom:.45rem;
+  cursor:pointer;transition:all .15s ease;position:relative}
+.result-card:hover{border-color:var(--amber);background:var(--amber-l)}
+.result-card.top-match{border-color:var(--amber);background:var(--amber-l)}
+.result-rank{position:absolute;top:.45rem;right:.6rem;
+  font-family:var(--mono);font-size:.6rem;color:var(--ink3)}
+.result-title{font-size:.8rem;font-weight:600;display:flex;align-items:center;gap:.5rem;
+  padding-right:1.8rem}
+.result-swatch{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.result-score-bar{height:3px;border-radius:2px;margin-top:.4rem;
+  background:var(--border);overflow:hidden}
+.result-score-fill{height:100%;border-radius:2px;transition:width .5s ease}
+.result-score-label{font-family:var(--mono);font-size:.6rem;color:var(--ink3);
+  margin-top:.3rem;display:flex;justify-content:space-between}
+.result-score-label span{color:var(--amber);font-weight:500}
+.clear-search-btn{width:100%;padding:.4rem;border-radius:7px;
+  border:1px solid var(--border2);background:transparent;color:var(--ink3);
+  font-family:var(--mono);font-size:.63rem;cursor:pointer;letter-spacing:.05em;
+  transition:all .15s ease;margin-top:.3rem}
+.clear-search-btn:hover{border-color:var(--red);color:var(--red);background:var(--red-l)}
+
+#scatter-svg{width:100%;height:100%}
+
+/* empty overlay */
+#empty-overlay{position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:.6rem;pointer-events:none;
+  transition:opacity .4s ease}
+#empty-overlay.gone{opacity:0}
+.empty-title{font-family:var(--serif);font-size:1.1rem;font-style:italic;color:var(--border2)}
+.empty-sub{font-family:var(--mono);font-size:.68rem;color:var(--border2)}
+
+/* tooltip */
+#tooltip{position:absolute;pointer-events:none;
+  background:var(--white);border:1px solid var(--border);
+  border-radius:8px;padding:.5rem .75rem;z-index:100;display:none;
+  box-shadow:0 4px 16px rgba(0,0,0,.08);max-width:200px;font-size:.75rem}
+#tooltip strong{display:block;font-size:.82rem;margin-bottom:2px}
+#tooltip .tt-abstract{color:var(--ink3);font-size:.68rem;line-height:1.4;margin-top:3px;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+#tooltip .tt-coord{font-family:var(--mono);font-size:.6rem;color:var(--ink3);margin-top:4px}
+
+/* legend */
+#legend{position:absolute;bottom:1rem;right:1.2rem;
+  display:flex;flex-direction:column;gap:4px}
+.legend-row{display:flex;align-items:center;gap:6px;
+  font-family:var(--mono);font-size:.65rem;color:var(--ink2)}
+.legend-swatch{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+
+/* svg elements */
+.axis-line{stroke:#ddd5c8;stroke-width:1}
+.grid-line{stroke:#ede8df;stroke-width:.8;stroke-dasharray:4 4}
+.cluster-ring{fill:none;stroke-dasharray:6 4;stroke-width:1.5;opacity:0;transition:opacity .6s ease}
+.cluster-ring.show{opacity:1}
+.cluster-lbl{font-family:var(--mono);font-size:10px;font-style:italic;opacity:0;transition:opacity .6s ease}
+.cluster-lbl.show{opacity:.8}
+.sim-line{stroke-dasharray:4 3;stroke-width:1;opacity:0;transition:opacity .5s ease}
+.sim-line.show{opacity:.35}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">The <em>Embedding</em> Machine</div>
+  <div class="tagline">type a book → watch meaning become math</div>
+  <div class="spacer"></div>
+  <div id="book-count-badge"></div>
+</header>
+
+<div class="app">
+
+  <!-- ── LEFT ── -->
+  <div class="left-panel">
+    <div class="panel-tabs">
+      <button class="tab active" onclick="switchTab('input')">＋ Add Book</button>
+      <button class="tab" onclick="switchTab('books')" id="tab-books">Library (0)</button>
+    </div>
+
+    <!-- INPUT PANE -->
+    <div class="form-pane" id="pane-input">
+      <div class="field-group">
+        <label class="field-label">Book title</label>
+        <div class="title-row">
+          <input type="text" id="inp-title" placeholder="e.g. The Great Gatsby" maxlength="80"
+            oninput="onTitleInput()"/>
+          <button class="lookup-btn" id="lookup-btn" onclick="lookupAbstract()" disabled title="Auto-fill abstract">
+            <span class="btn-icon">🔍</span>
+            <div class="spinner"></div>
+          </button>
+        </div>
+        <div class="lookup-status" id="lookup-status"></div>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Abstract / back-cover description</label>
+        <textarea id="inp-abstract" placeholder="Write a short description of what this book is about — its themes, setting, characters, plot…" maxlength="600"></textarea>
+        <div class="char-count"><span id="char-used">0</span> / 600</div>
+      </div>
+      <button class="submit-btn" id="submit-btn" onclick="submitBook()">
+        Feed to machine <span class="arrow">→</span>
+      </button>
+
+      <div class="or-divider">or start with an example</div>
+      <div class="seed-label">Quick seeds</div>
+      <div class="seed-pills" id="seed-pills"></div>
+    </div>
+
+    <!-- LIBRARY PANE -->
+    <div class="books-pane" id="pane-books" style="display:none">
+      <div class="books-empty" id="books-empty">
+        <div style="font-size:2rem">📭</div>
+        <div>No books yet</div>
+        <div style="font-size:.62rem">Add one from the input tab</div>
+      </div>
+      <div id="books-list"></div>
+    </div>
+
+    <div class="reset-row" id="reset-row" style="display:none">
+      <button onclick="resetAll()">↺ Clear all books</button>
+    </div>
+  </div>
+
+  <!-- ── RIGHT ── -->
+  <div class="right-panel">
+
+    <!-- machine bar -->
+    <div class="machine-bar">
+      <div class="machine-box" id="machine-box">
+        <div class="machine-icon" id="machine-icon">⚙️</div>
+        <div class="machine-status" id="machine-status">Waiting for input…</div>
+        <div class="machine-progress"></div>
+      </div>
+
+      <div class="vec-panel" id="vec-panel">
+        <div class="vec-idle" id="vec-idle">
+          <div style="font-size:1.6rem">🔢</div>
+          <div>Vector output will appear here</div>
+        </div>
+        <div id="vec-content" style="display:none;flex-direction:column;gap:.4rem;height:100%">
+          <div class="vec-top-label">Last embedding</div>
+          <div class="vec-title" id="vec-title">—</div>
+          <div class="vec-values" id="vec-values"></div>
+        </div>
+      </div>
+
+      <div class="how-pills">
+        <div class="how-pill"><b>① Tokenize</b>Strip stopwords, score words by TF-IDF</div>
+        <div class="how-pill"><b>② Compress</b>PCA collapses vocab → 2 axes</div>
+        <div class="how-pill"><b>③ Plot</b>Similar books land close together</div>
+      </div>
+    </div>
+
+    <!-- scatter + search -->
+    <div class="plot-wrap" id="plot-wrap">
+      <!-- SVG area -->
+      <div class="plot-svg-area" id="plot-svg-area">
+        <div class="plot-header">2D EMBEDDING SPACE</div>
+        <div id="empty-overlay">
+          <div style="font-size:2.5rem">🌿</div>
+          <div class="empty-title">The space is empty</div>
+          <div class="empty-sub">Add books to see them appear</div>
+        </div>
+        <svg id="scatter-svg">
+          <g id="g-grid"></g>
+          <g id="g-sim"></g>
+          <g id="g-clusters"></g>
+          <g id="g-dots"></g>
+          <g id="g-highlights"></g>
+        </svg>
+        <div id="tooltip"></div>
+        <div id="legend"></div>
+      </div>
+
+      <!-- search panel -->
+      <div class="search-panel">
+        <div class="search-panel-header">
+          <span>✦</span> Find a book
+        </div>
+        <div class="search-body">
+          <textarea class="search-textarea" id="search-input"
+            placeholder="Describe what you want to read… e.g. &quot;a story with political drama, ideology and moral conflict&quot;"
+            rows="4"></textarea>
+          <button class="search-btn" id="search-btn" onclick="searchBooks()" disabled>
+            🔍 Find closest matches
+          </button>
+        </div>
+        <div class="search-divider"></div>
+        <div class="results-area" id="results-area">
+          <div class="results-idle" id="results-idle">
+            <div style="font-size:1.8rem">🔎</div>
+            <div>Results will rank here</div>
+            <div style="font-size:.62rem;margin-top:2px">Add books first, then search</div>
+          </div>
+          <div id="results-list" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── stopwords ─────────────────────────────────────────────────────────────
+const STOPWORDS = new Set(`a an the and or but in on at to of for with by from is are was were be been being have has had do does did will would could should may might must can this that these those it its he she they we you i me him her us them his our your their what which who when where how all some any each every both few more most other into out up down over under again further then there here s t re ve ll d m`.split(' '));
+
+// ── palette ───────────────────────────────────────────────────────────────
+const PALETTE = [
+  '#c97c0a','#0f7a6d','#6b3fa0','#b83232','#1f5c99',
+  '#b56a00','#1a7a4e','#7a1a5e','#7a4a00','#3a3a99',
+  '#8a2a2a','#2a5a4a','#4a2a7a','#5a4a00','#1a3a7a',
+];
+
+// ── seeds ─────────────────────────────────────────────────────────────────
+const SEEDS = [
+  {title:"Harry Potter",abstract:"A young orphan discovers he is a wizard and enters a magical school where he learns spells, makes friends, and battles a dark sorcerer who murdered his parents. A coming-of-age story set in a hidden world of witches, wands, and enchanted creatures."},
+  {title:"Dune",abstract:"On a desert planet rich with a precious spice that enables interstellar travel, a young nobleman becomes embroiled in political intrigue, ecological mystery, and religious prophecy. An epic science-fiction saga of empire, ecology, and destiny."},
+  {title:"1984",abstract:"In a totalitarian superstate ruled by a surveillance apparatus called Big Brother, a low-ranking government clerk secretly rebels against the oppressive system of thought control, propaganda, and perpetual war. A chilling political dystopia about power and freedom."},
+  {title:"Pride & Prejudice",abstract:"In Regency-era England, the second of five sisters navigates the pressures of marriage and social class, finding herself at odds with — and eventually in love with — a wealthy, seemingly arrogant gentleman. A witty romantic novel about first impressions and personal growth."},
+  {title:"A Brief History of Time",abstract:"A theoretical physicist explains the nature of time, black holes, the Big Bang, and quantum mechanics for a general audience, asking the deepest questions about the cosmos: Why is there a universe? What is its fate? A landmark popular science book."},
+  {title:"Crime and Punishment",abstract:"A destitute student in St. Petersburg murders a pawnbroker, believing himself above conventional morality — then spirals into guilt and psychological torment. A dense psychological novel about sin, suffering, and redemption."},
+  {title:"Sapiens",abstract:"A historian traces the history of humankind from the emergence of Homo sapiens in Africa through the revolutions of cognition, agriculture, science, and capitalism that shaped modern civilization. An ambitious non-fiction narrative about how humans came to dominate the planet."},
+  {title:"The Hitchhiker's Guide",abstract:"An ordinary Englishman is whisked off Earth moments before its demolition to make way for a hyperspace bypass, then tumbles through a surreal galaxy populated by improbable aliens, a depressed robot, and the Answer to Life, the Universe, and Everything. Absurdist science-fiction comedy."},
+];
+
+// ── state ─────────────────────────────────────────────────────────────────
+let books = [];   // {id, title, abstract, color, x, y}
+let nextId = 0;
+let processing = false;
+let globalVocab = [];
+let globalIdf = [];
+let globalBookVectors = [];  // parallel to books[]
+let activeSearch = false;
+
+// ── tab switching ─────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('pane-input').style.display = tab==='input'?'':'none';
+  document.getElementById('pane-books').style.display = tab==='books'?'':'none';
+  event.target.classList.add('active');
+  if(tab==='input') document.querySelectorAll('.tab')[0].classList.add('active');
+}
+
+// ── seeds ─────────────────────────────────────────────────────────────────
+(function buildSeeds(){
+  const wrap = document.getElementById('seed-pills');
+  SEEDS.forEach(s=>{
+    const btn = document.createElement('button');
+    btn.className='seed-pill';
+    btn.textContent=s.title;
+    btn.onclick=()=>{
+      document.getElementById('inp-title').value=s.title;
+      document.getElementById('inp-abstract').value=s.abstract;
+      document.getElementById('char-used').textContent=s.abstract.length;
+    };
+    wrap.appendChild(btn);
+  });
+})();
+
+document.getElementById('inp-abstract').addEventListener('input',function(){
+  document.getElementById('char-used').textContent=this.value.length;
+});
+document.getElementById('search-input').addEventListener('input',function(){
+  document.getElementById('search-btn').disabled = this.value.trim().length===0 || books.length===0;
+});
+
+function onTitleInput(){
+  const hasTitle = document.getElementById('inp-title').value.trim().length > 1;
+  document.getElementById('lookup-btn').disabled = !hasTitle;
+  document.getElementById('lookup-status').textContent = '';
+}
+
+async function lookupAbstract(){
+  const rawTitle = document.getElementById('inp-title').value.trim();
+  if(!rawTitle) return;
+
+  const btn = document.getElementById('lookup-btn');
+  const status = document.getElementById('lookup-status');
+  const abstractBox = document.getElementById('inp-abstract');
+
+  btn.classList.add('loading');
+  btn.disabled = true;
+
+  const setStatus = (msg, color='var(--ink3)') => {
+    status.style.color = color;
+    status.textContent = msg;
+  };
+
+  const stripHtml = s => s.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+  const trimToSentence = (s, max=500) => {
+    if(s.length <= max) return s;
+    const cut = s.slice(0, max).replace(/[^.!?]*$/, '').trim();
+    return cut || s.slice(0, max);
+  };
+  const fill = (text, source, foundTitle) => {
+    abstractBox.value = text;
+    document.getElementById('char-used').textContent = text.length;
+    setStatus(`✓ ${source}: "${(foundTitle||rawTitle).slice(0,40)}"`, 'var(--teal)');
+    btn.classList.remove('loading'); btn.disabled = false;
+  };
+
+  const q = rawTitle.trim();
+
+  // ── 1. Wikipedia search + extract ────────────────────────────
+  try {
+    setStatus('Searching Wikipedia…');
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q + ' book')}&srlimit=3&format=json&origin=*`;
+    const sRes = await fetch(searchUrl);
+    const sData = await sRes.json();
+    const hits = sData?.query?.search || [];
+
+    for(const hit of hits){
+      // fetch the plain-text extract for this page
+      const extractUrl = `https://en.wikipedia.org/w/api.php?action=query&pageids=${hit.pageid}&prop=extracts&exintro=true&explaintext=true&exsentences=5&format=json&origin=*`;
+      const eRes = await fetch(extractUrl);
+      const eData = await eRes.json();
+      const pages = eData?.query?.pages || {};
+      const page = Object.values(pages)[0];
+      if(page?.extract && page.extract.length > 80){
+        const text = trimToSentence(stripHtml(page.extract));
+        return fill(text, 'Wikipedia', page.title);
+      }
+    }
+  } catch(e){}
+
+  // ── 2. Google Books ───────────────────────────────────────────
+  try {
+    setStatus('Trying Google Books…');
+    const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=5`);
+    const data = await res.json();
+    const item = (data.items||[]).find(i=>i.volumeInfo?.description);
+    if(item){
+      const text = trimToSentence(stripHtml(item.volumeInfo.description));
+      return fill(text, 'Google Books', item.volumeInfo.title);
+    }
+  } catch(e){}
+
+  // ── 3. Open Library ───────────────────────────────────────────
+  try {
+    setStatus('Trying Open Library…');
+    const res = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=3&fields=key,title,first_sentence`);
+    const data = await res.json();
+    const withSentence = (data.docs||[]).find(d=>d.first_sentence);
+    if(withSentence){
+      const raw = typeof withSentence.first_sentence==='object'
+        ? withSentence.first_sentence.value : withSentence.first_sentence;
+      return fill(trimToSentence(stripHtml(raw)), 'Open Library', withSentence.title);
+    }
+    const first = (data.docs||[])[0];
+    if(first?.key){
+      const wr = await fetch(`https://openlibrary.org${first.key}.json`);
+      const wd = await wr.json();
+      const desc = wd.description;
+      if(desc){
+        const raw = typeof desc==='object' ? desc.value : desc;
+        return fill(trimToSentence(stripHtml(raw)), 'Open Library', first.title);
+      }
+    }
+  } catch(e){}
+
+  setStatus('⚠ Not found — please type the abstract manually', 'var(--red)');
+  btn.classList.remove('loading');
+  btn.disabled = false;
+}
+
+// ── submit ────────────────────────────────────────────────────────────────
+function submitBook(){
+  const title = document.getElementById('inp-title').value.trim();
+  const abstract = document.getElementById('inp-abstract').value.trim();
+  if(!title||!abstract||processing) return;
+  const color = PALETTE[books.length % PALETTE.length];
+  const book = {id:nextId++, title, abstract, color, x:0, y:0};
+  runMachine(book);
+}
+
+function runMachine(book){
+  processing=true;
+  document.getElementById('submit-btn').disabled=true;
+
+  const mb = document.getElementById('machine-box');
+  const ms = document.getElementById('machine-status');
+  const mi = document.getElementById('machine-icon');
+
+  mb.classList.add('active');
+  mi.textContent='📖';
+  ms.innerHTML=`<b>${truncate(book.title,22)}</b><br>Tokenizing…`;
+
+  setTimeout(()=>{ ms.innerHTML=`<b>${truncate(book.title,22)}</b><br>Computing TF-IDF…`; },400);
+  setTimeout(()=>{ ms.innerHTML=`<b>${truncate(book.title,22)}</b><br>Running PCA…`; },850);
+  setTimeout(()=>{
+    // add book, recompute all embeddings
+    books.push(book);
+    recomputeEmbeddings();
+
+    ms.innerHTML=`<b>${truncate(book.title,22)}</b><br>✓ Vector generated`;
+    mi.textContent='✅';
+    mb.classList.remove('active');
+
+    showVector(book);
+    redrawPlot(true);
+    updateLibrary();
+    updateBadge();
+
+    // clear form
+    document.getElementById('inp-title').value='';
+    document.getElementById('inp-abstract').value='';
+    document.getElementById('char-used').textContent='0';
+
+    setTimeout(()=>{
+      mi.textContent='⚙️';
+      ms.innerHTML='Waiting for input…';
+      processing=false;
+      document.getElementById('submit-btn').disabled=false;
+    },1800);
+  },1200);
+}
+
+function truncate(s,n){return s.length>n?s.slice(0,n)+'…':s}
+
+// ── TF-IDF ────────────────────────────────────────────────────────────────
+function tokenize(text){
+  return text.toLowerCase()
+    .replace(/[^a-z\s]/g,' ')
+    .split(/\s+/)
+    .filter(w=>w.length>2 && !STOPWORDS.has(w));
+}
+
+function recomputeEmbeddings(){
+  if(books.length===0){ globalVocab=[]; globalIdf=[]; globalBookVectors=[]; return; }
+  if(books.length===1){ books[0].x=0; books[0].y=0; globalVocab=[]; globalIdf=[]; globalBookVectors=[]; return; }
+
+  const docs = books.map(b=>b.title+' '+b.abstract);
+  const tokenized = docs.map(tokenize);
+
+  // build vocab (top 300 by doc frequency)
+  const df = {};
+  tokenized.forEach(tokens=>{
+    const seen = new Set(tokens);
+    seen.forEach(w=>{ df[w]=(df[w]||0)+1; });
+  });
+  const vocab = Object.entries(df)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,300)
+    .map(e=>e[0]);
+
+  const N = docs.length;
+  const idf = vocab.map(w=>Math.log((N+1)/((df[w]||0)+1))+1);
+
+  // TF-IDF matrix: N × V
+  const mat = tokenized.map(tokens=>{
+    const freq={};
+    tokens.forEach(t=>{freq[t]=(freq[t]||0)+1});
+    const total = tokens.length||1;
+    return vocab.map((w,j)=>((freq[w]||0)/total)*idf[j]);
+  });
+
+  // store globally for search
+  globalVocab = vocab;
+  globalIdf = idf;
+  globalBookVectors = mat.map(row=>normalizeVec(row));
+
+  // PCA to 2D
+  const coords = pca2D(mat);
+
+  // scale to ±85
+  let mx=0,my=0;
+  coords.forEach(c=>{mx=Math.max(mx,Math.abs(c[0]));my=Math.max(my,Math.abs(c[1]))});
+  mx=mx||1; my=my||1;
+  books.forEach((b,i)=>{
+    b.x = (coords[i][0]/mx)*85;
+    b.y = (coords[i][1]/my)*85;
+  });
+}
+
+// ── vector helpers ────────────────────────────────────────────────────────
+function normalizeVec(v){
+  const mag=Math.sqrt(v.reduce((s,x)=>s+x*x,0))||1;
+  return v.map(x=>x/mag);
+}
+function cosineSim(a,b){
+  return a.reduce((s,x,i)=>s+x*b[i],0); // assumes both normalised
+}
+
+// ── search ────────────────────────────────────────────────────────────────
+function searchBooks(){
+  const query = document.getElementById('search-input').value.trim();
+  if(!query || books.length===0) return;
+
+  // Re-build TF-IDF including the query as a document
+  // This ensures query words like "magic", "wizards" are in the vocab
+  const allDocs = [...books.map(b => b.title+' '+b.abstract), query];
+  const allTokenized = allDocs.map(tokenize);
+
+  const df = {};
+  allTokenized.forEach(tokens=>{
+    const seen = new Set(tokens);
+    seen.forEach(w=>{ df[w]=(df[w]||0)+1; });
+  });
+  const vocab = Object.keys(df);
+  const N = allDocs.length;
+  const idf = vocab.map(w=>Math.log((N+1)/((df[w]||0)+1))+1);
+
+  const vectors = allTokenized.map(tokens=>{
+    const freq={};
+    tokens.forEach(t=>{freq[t]=(freq[t]||0)+1});
+    const total=tokens.length||1;
+    return normalizeVec(vocab.map((w,j)=>((freq[w]||0)/total)*idf[j]));
+  });
+
+  const queryVec = vectors[vectors.length-1];
+  const bookVecs = vectors.slice(0,-1);
+
+  const scores = books.map((b,i)=>({
+    book:b,
+    sim: cosineSim(queryVec, bookVecs[i])
+  }));
+  scores.sort((a,b)=>b.sim-a.sim);
+
+  const maxSim = scores[0].sim || 1;
+  scores.forEach(s=>s.normSim = s.sim/maxSim);
+
+  activeSearch = true;
+  renderResults(scores);
+  highlightMatches(scores);
+}
+
+function clearSearch(){
+  activeSearch=false;
+  document.getElementById('search-input').value='';
+  document.getElementById('search-btn').disabled=true;
+  document.getElementById('results-idle').style.display='flex';
+  document.getElementById('results-list').style.display='none';
+  // restore all dots to full opacity
+  document.querySelectorAll('#g-dots circle').forEach(c=>c.setAttribute('opacity','.88'));
+  document.querySelectorAll('#g-dots text').forEach(t=>t.setAttribute('opacity','.9'));
+  document.getElementById('g-highlights').innerHTML='';
+}
+
+function renderResults(scores){
+  document.getElementById('results-idle').style.display='none';
+  const list=document.getElementById('results-list');
+  list.style.display='block';
+  list.innerHTML='';
+  scores.forEach((s,i)=>{
+    const pct=Math.round(s.normSim*100);
+    const card=document.createElement('div');
+    card.className='result-card'+(i===0?' top-match':'');
+    card.onclick=()=>pulseBook(s.book);
+    card.innerHTML=`
+      <div class="result-rank">#${i+1}</div>
+      <div class="result-title">
+        <div class="result-swatch" style="background:${s.book.color}"></div>
+        ${s.book.title}
+      </div>
+      <div class="result-score-bar">
+        <div class="result-score-fill" style="width:0%;background:${s.book.color}"
+             data-pct="${pct}"></div>
+      </div>
+      <div class="result-score-label">
+        <span>similarity</span><span>${pct}%</span>
+      </div>`;
+    list.appendChild(card);
+  });
+  // animate bars
+  requestAnimationFrame(()=>{
+    list.querySelectorAll('.result-score-fill').forEach(bar=>{
+      bar.style.width=bar.dataset.pct+'%';
+    });
+  });
+
+  // add clear button
+  const clr=document.createElement('button');
+  clr.className='clear-search-btn';
+  clr.textContent='✕ Clear search';
+  clr.onclick=clearSearch;
+  list.appendChild(clr);
+}
+
+function highlightMatches(scores){
+  const maxSim=scores[0].sim||1;
+  // dim/brighten dots
+  scores.forEach(s=>{
+    const opacity=0.12+0.76*(s.sim/maxSim);
+    const circle=document.querySelector(`#g-dots circle[data-id="${s.book.id}"]`);
+    const label=document.querySelector(`#g-dots text[data-id="${s.book.id}"]`);
+    if(circle) circle.setAttribute('opacity', opacity.toFixed(2));
+    if(label)  label.setAttribute('opacity',(opacity*.95).toFixed(2));
+  });
+
+  // glow rings for top 3
+  const ns='http://www.w3.org/2000/svg';
+  const hg=document.getElementById('g-highlights');
+  hg.innerHTML='';
+  scores.slice(0,3).forEach((s,rank)=>{
+    const{px,py}=toSVG(s.book.x,s.book.y);
+    const r=14+rank*0;
+    const ring=document.createElementNS(ns,'circle');
+    ring.setAttribute('cx',px); ring.setAttribute('cy',py);
+    ring.setAttribute('r',r); ring.setAttribute('fill','none');
+    ring.setAttribute('stroke',s.book.color);
+    ring.setAttribute('stroke-width', rank===0?'2.5':'1.5');
+    ring.setAttribute('opacity','0');
+    ring.setAttribute('style','transition:opacity .4s ease');
+    ring.setAttribute('stroke-dasharray', rank===0?'':'4 3');
+    hg.appendChild(ring);
+    requestAnimationFrame(()=>ring.setAttribute('opacity', rank===0?'1':'.6'));
+
+    if(rank===0){
+      // label badge
+      const badge=document.createElementNS(ns,'text');
+      badge.setAttribute('x',px+18); badge.setAttribute('y',py-12);
+      badge.setAttribute('font-family','DM Mono, monospace');
+      badge.setAttribute('font-size','9.5');
+      badge.setAttribute('fill',s.book.color);
+      badge.setAttribute('font-weight','500');
+      badge.setAttribute('opacity','0');
+      badge.setAttribute('style','transition:opacity .4s ease');
+      badge.textContent='best match';
+      hg.appendChild(badge);
+      requestAnimationFrame(()=>badge.setAttribute('opacity','1'));
+    }
+  });
+}
+
+function pulseBook(book){
+  const circle=document.querySelector(`#g-dots circle[data-id="${book.id}"]`);
+  if(!circle) return;
+  const orig=circle.getAttribute('r');
+  circle.setAttribute('r','13');
+  setTimeout(()=>circle.setAttribute('r',orig),300);
+}
+function pca2D(mat){
+  const n=mat.length, d=mat[0].length;
+
+  // center
+  const mean=new Float64Array(d);
+  mat.forEach(row=>row.forEach((v,j)=>mean[j]+=v/n));
+  const X=mat.map(row=>row.map((v,j)=>v-mean[j]));
+
+  // power iteration for top 2 eigenvectors of X^T X (via X X^T for n<d)
+  function matVec(v){
+    // result = X (X^T v)
+    const tmp=new Float64Array(n);
+    for(let i=0;i<n;i++) for(let j=0;j<d;j++) tmp[i]+=X[i][j]*v[j];
+    const out=new Float64Array(d);
+    for(let i=0;i<n;i++) for(let j=0;j<d;j++) out[j]+=X[i][j]*tmp[i];
+    return out;
+  }
+
+  function normalize(v){
+    const norm=Math.sqrt(v.reduce((s,x)=>s+x*x,0))||1;
+    return v.map(x=>x/norm);
+  }
+
+  function deflate(v,comp){
+    // remove projection onto comp from v
+    const dot=v.reduce((s,x,i)=>s+x*comp[i],0);
+    return v.map((x,i)=>x-dot*comp[i]);
+  }
+
+  // first component
+  let v1=new Float64Array(d).fill(0); v1[0]=1;
+  for(let it=0;it<60;it++) v1=normalize(matVec(v1));
+
+  // second component (deflated)
+  let v2=new Float64Array(d).fill(0); v2[Math.min(1,d-1)]=1;
+  for(let it=0;it<60;it++){
+    let u=matVec(v2);
+    u=deflate(u,v1);
+    v2=normalize(u);
+  }
+
+  // project
+  return X.map(row=>[
+    row.reduce((s,x,j)=>s+x*v1[j],0),
+    row.reduce((s,x,j)=>s+x*v2[j],0),
+  ]);
+}
+
+// ── fake vector display ───────────────────────────────────────────────────
+function fakeVec(id){
+  let s=id*2654435761|0;
+  const vals=[];
+  for(let i=0;i<8;i++){
+    s=(s*1664525+1013904223)|0;
+    vals.push(((s>>>0)/0xffffffff*2-1).toFixed(3));
+  }
+  return '['+vals.map(v=>(v>=0?'+':'')+v).join(', ')+', …]';
+}
+
+function showVector(book){
+  document.getElementById('vec-idle').style.display='none';
+  const vc=document.getElementById('vec-content');
+  vc.style.display='flex';
+  document.getElementById('vec-title').textContent=book.title;
+  document.getElementById('vec-values').textContent='embedding = '+fakeVec(book.id);
+}
+
+// ── plot ──────────────────────────────────────────────────────────────────
+let svgW=0,svgH=0;
+const PAD={t:44,r:44,b:36,l:44};
+
+function toSVG(x,y){
+  const px=PAD.l+((x+100)/200)*(svgW-PAD.l-PAD.r);
+  const py=svgH-PAD.b-((y+100)/200)*(svgH-PAD.t-PAD.b);
+  return{px,py};
+}
+
+function initSVG(){
+  const el=document.getElementById('scatter-svg');
+  const r=document.getElementById('plot-svg-area').getBoundingClientRect();
+  svgW=r.width; svgH=r.height;
+  drawGrid();
+}
+
+function drawGrid(){
+  const g=document.getElementById('g-grid');
+  g.innerHTML='';
+  const ns='http://www.w3.org/2000/svg';
+  const line=(x1,y1,x2,y2,cls)=>{
+    const l=document.createElementNS(ns,'line');
+    l.setAttribute('x1',x1);l.setAttribute('y1',y1);
+    l.setAttribute('x2',x2);l.setAttribute('y2',y2);
+    l.setAttribute('class',cls);
+    g.appendChild(l);
+  };
+  for(let v=-80;v<=80;v+=40){
+    const a=toSVG(v,-100),b=toSVG(v,100);
+    line(a.px,PAD.t,a.px,svgH-PAD.b,'grid-line');
+    const c=toSVG(-100,v),d=toSVG(100,v);
+    line(PAD.l,c.py,svgW-PAD.r,c.py,'grid-line');
+  }
+  const o=toSVG(0,0);
+  line(PAD.l,o.py,svgW-PAD.r,o.py,'axis-line');
+  line(o.px,PAD.t,o.px,svgH-PAD.b,'axis-line');
+
+  // axis labels
+  const text=(x,y,txt,anchor,transform)=>{
+    const t=document.createElementNS(ns,'text');
+    t.setAttribute('x',x);t.setAttribute('y',y);
+    t.setAttribute('text-anchor',anchor||'middle');
+    t.setAttribute('font-family','DM Mono, monospace');
+    t.setAttribute('font-size','10');t.setAttribute('fill','#bbb0a0');
+    if(transform)t.setAttribute('transform',transform);
+    t.textContent=txt;
+    g.appendChild(t);
+  };
+  text(svgW/2,svgH-4,'Dimension 1');
+  text(0,0,'Dimension 2','middle',`translate(13,${svgH/2}) rotate(-90)`);
+}
+
+function redrawPlot(animate){
+  const el=document.getElementById('scatter-svg');
+  const r=el.getBoundingClientRect();
+  svgW=r.width; svgH=r.height;
+  drawGrid();
+
+  const ns='http://www.w3.org/2000/svg';
+  const dg=document.getElementById('g-dots');
+  dg.innerHTML='';
+
+  if(books.length===0){
+    document.getElementById('empty-overlay').classList.remove('gone');
+    document.getElementById('g-clusters').innerHTML='';
+    document.getElementById('g-sim').innerHTML='';
+    document.getElementById('legend').innerHTML='';
+    return;
+  }
+  document.getElementById('empty-overlay').classList.add('gone');
+
+  // similarity lines (cosine sim via dot of normalised x,y)
+  const sg=document.getElementById('g-sim');
+  sg.innerHTML='';
+  if(books.length>=3){
+    const norms=books.map(b=>{
+      const mag=Math.sqrt(b.x*b.x+b.y*b.y)||1;
+      return{x:b.x/mag,y:b.y/mag};
+    });
+    for(let i=0;i<books.length;i++){
+      let bestJ=-1,bestSim=-Infinity;
+      for(let j=0;j<books.length;j++){
+        if(i===j)continue;
+        const sim=norms[i].x*norms[j].x+norms[i].y*norms[j].y;
+        if(sim>bestSim){bestSim=sim;bestJ=j;}
+      }
+      if(bestJ>=0&&bestSim>.7){
+        const a=toSVG(books[i].x,books[i].y);
+        const b=toSVG(books[bestJ].x,books[bestJ].y);
+        const l=document.createElementNS(ns,'line');
+        l.setAttribute('x1',a.px);l.setAttribute('y1',a.py);
+        l.setAttribute('x2',b.px);l.setAttribute('y2',b.py);
+        l.setAttribute('stroke',books[i].color);
+        l.setAttribute('class','sim-line');
+        sg.appendChild(l);
+        requestAnimationFrame(()=>l.classList.add('show'));
+      }
+    }
+  }
+
+  // dots
+  books.forEach((b,idx)=>{
+    const{px,py}=toSVG(b.x,b.y);
+    const isNew=animate&&idx===books.length-1;
+
+    const circle=document.createElementNS(ns,'circle');
+    circle.setAttribute('cx',px);circle.setAttribute('cy',py);
+    circle.setAttribute('r',isNew?'0':'8');
+    circle.setAttribute('fill',b.color);circle.setAttribute('opacity','.88');
+    circle.setAttribute('data-id',b.id);
+    circle.setAttribute('style','cursor:pointer;transition:r .3s cubic-bezier(.34,1.56,.64,1)');
+    circle.addEventListener('mouseenter',e=>showTT(e,b));
+    circle.addEventListener('mouseleave',hideTT);
+    dg.appendChild(circle);
+    if(isNew) requestAnimationFrame(()=>circle.setAttribute('r','8'));
+
+    const label=document.createElementNS(ns,'text');
+    label.setAttribute('x',px+11);label.setAttribute('y',py+4);
+    label.setAttribute('font-family','DM Sans, sans-serif');
+    label.setAttribute('font-size','11.5');label.setAttribute('fill',b.color);
+    label.setAttribute('font-weight','500');
+    label.setAttribute('data-id',b.id);
+    label.setAttribute('opacity',isNew?'0':'0.9');
+    label.setAttribute('style','transition:opacity .4s ease;pointer-events:none');
+    label.textContent=b.title;
+    dg.appendChild(label);
+    if(isNew) setTimeout(()=>label.setAttribute('opacity','.9'),280);
+  });
+
+  drawClusters();
+  updateLegend();
+
+  // re-apply search highlights if active
+  if(activeSearch){
+    const query=document.getElementById('search-input').value.trim();
+    if(query) searchBooks();
+  }
+
+  // update search button state
+  const sb=document.getElementById('search-btn');
+  sb.disabled = document.getElementById('search-input').value.trim().length===0 || books.length===0;
+}
+
+// ── auto clustering (nearest-neighbour groups) ────────────────────────────
+function drawClusters(){
+  const cg=document.getElementById('g-clusters');
+  cg.innerHTML='';
+  if(books.length<2) return;
+  const ns='http://www.w3.org/2000/svg';
+
+  // simple: group books whose distance < threshold
+  const threshold=35;
+  const visited=new Set();
+  const groups=[];
+  books.forEach((b,i)=>{
+    if(visited.has(i)) return;
+    const group=[i];
+    books.forEach((_,j)=>{
+      if(i===j||visited.has(j)) return;
+      const d=Math.hypot(books[i].x-books[j].x,books[i].y-books[j].y);
+      if(d<threshold){ group.push(j); }
+    });
+    if(group.length>=2) group.forEach(g=>visited.add(g));
+    if(group.length>=2) groups.push(group);
+  });
+
+  groups.forEach(group=>{
+    const xs=group.map(i=>books[i].x);
+    const ys=group.map(i=>books[i].y);
+    const cx=xs.reduce((a,v)=>a+v,0)/xs.length;
+    const cy=ys.reduce((a,v)=>a+v,0)/ys.length;
+    const{px,py}=toSVG(cx,cy);
+    let maxR=0;
+    group.forEach(i=>{
+      const{px:bx,py:by}=toSVG(books[i].x,books[i].y);
+      maxR=Math.max(maxR,Math.hypot(bx-px,by-py));
+    });
+    const r=maxR+26;
+    const color=books[group[0]].color;
+
+    const ellipse=document.createElementNS(ns,'ellipse');
+    ellipse.setAttribute('cx',px);ellipse.setAttribute('cy',py);
+    ellipse.setAttribute('rx',r);ellipse.setAttribute('ry',r*.72);
+    ellipse.setAttribute('stroke',color);
+    ellipse.setAttribute('fill',color);ellipse.setAttribute('fill-opacity','.04');
+    ellipse.setAttribute('class','cluster-ring');
+    cg.appendChild(ellipse);
+    requestAnimationFrame(()=>ellipse.classList.add('show'));
+
+    // find common words
+    const commonWords=getClusterKeywords(group);
+    const t=document.createElementNS(ns,'text');
+    t.setAttribute('x',px);t.setAttribute('y',py-r*.72-7);
+    t.setAttribute('text-anchor','middle');t.setAttribute('fill',color);
+    t.setAttribute('class','cluster-lbl');
+    t.textContent=commonWords;
+    cg.appendChild(t);
+    requestAnimationFrame(()=>t.classList.add('show'));
+  });
+}
+
+function getClusterKeywords(indices){
+  const allTokens=indices.flatMap(i=>tokenize(books[i].title+' '+books[i].abstract));
+  const freq={};
+  allTokens.forEach(t=>{freq[t]=(freq[t]||0)+1});
+  return Object.entries(freq)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,3)
+    .map(e=>e[0])
+    .join(' · ');
+}
+
+// ── tooltip ───────────────────────────────────────────────────────────────
+function showTT(e,book){
+  const tt=document.getElementById('tooltip');
+  tt.innerHTML=`<strong style="color:${book.color}">${book.title}</strong>
+    <div class="tt-abstract">${book.abstract}</div>
+    <div class="tt-coord">x: ${book.x.toFixed(2)}  y: ${book.y.toFixed(2)}</div>`;
+  tt.style.display='block';
+  const area=document.getElementById('plot-svg-area');
+  const wr=area.getBoundingClientRect();
+  let lx=e.clientX-wr.left+14, ly=e.clientY-wr.top-10;
+  if(lx+210>wr.width) lx=e.clientX-wr.left-220;
+  tt.style.left=lx+'px'; tt.style.top=ly+'px';
+}
+function hideTT(){document.getElementById('tooltip').style.display='none';}
+
+// ── legend ────────────────────────────────────────────────────────────────
+function updateLegend(){
+  const leg=document.getElementById('legend');
+  leg.innerHTML='';
+  books.forEach(b=>{
+    const row=document.createElement('div');
+    row.className='legend-row';
+    row.innerHTML=`<div class="legend-swatch" style="background:${b.color}"></div>${truncate(b.title,22)}`;
+    leg.appendChild(row);
+  });
+}
+
+// ── library panel ─────────────────────────────────────────────────────────
+function updateLibrary(){
+  const list=document.getElementById('books-list');
+  const empty=document.getElementById('books-empty');
+  const tabBtn=document.getElementById('tab-books');
+  tabBtn.textContent=`Library (${books.length})`;
+
+  const badge=document.getElementById('book-count-badge');
+  if(books.length>0){badge.style.display='';badge.textContent=books.length+' book'+(books.length>1?'s':'')+' embedded';}
+  else badge.style.display='none';
+
+  document.getElementById('reset-row').style.display=books.length?'':'none';
+
+  if(books.length===0){empty.style.display='flex';list.innerHTML='';return;}
+  empty.style.display='none';
+  list.innerHTML='';
+  books.forEach(b=>{
+    const card=document.createElement('div');
+    card.className='added-card';
+    card.innerHTML=`
+      <div class="added-dot" style="background:${b.color}"></div>
+      <div class="added-info">
+        <div class="added-title">${b.title}</div>
+        <div class="added-abstract">${b.abstract}</div>
+      </div>
+      <button class="remove-btn" title="Remove" onclick="removeBook(${b.id})">×</button>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function updateBadge(){updateLibrary();}
+
+// ── remove ────────────────────────────────────────────────────────────────
+function removeBook(id){
+  books=books.filter(b=>b.id!==id);
+  recomputeEmbeddings();
+  redrawPlot(false);
+  updateLibrary();
+  if(books.length===0){
+    document.getElementById('vec-idle').style.display='';
+    document.getElementById('vec-content').style.display='none';
+  }
+}
+
+// ── reset ─────────────────────────────────────────────────────────────────
+function resetAll(){
+  books=[];
+  activeSearch=false;
+  document.getElementById('g-dots').innerHTML='';
+  document.getElementById('g-clusters').innerHTML='';
+  document.getElementById('g-sim').innerHTML='';
+  document.getElementById('g-highlights').innerHTML='';
+  document.getElementById('legend').innerHTML='';
+  document.getElementById('empty-overlay').classList.remove('gone');
+  document.getElementById('vec-idle').style.display='';
+  document.getElementById('vec-content').style.display='none';
+  document.getElementById('machine-icon').textContent='⚙️';
+  document.getElementById('machine-status').textContent='Waiting for input…';
+  document.getElementById('results-idle').style.display='flex';
+  document.getElementById('results-list').style.display='none';
+  document.getElementById('search-btn').disabled=true;
+  updateLibrary();
+}
+
+// ── resize ────────────────────────────────────────────────────────────────
+let resizeTimer;
+window.addEventListener('resize',()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(()=>{
+    const r=document.getElementById('plot-svg-area').getBoundingClientRect();
+    svgW=r.width; svgH=r.height;
+    drawGrid(); redrawPlot(false);
+  },120);
+});
+
+// ── init ──────────────────────────────────────────────────────────────────
+setTimeout(initSVG, 80);
+</script>
+</body>
+</html>
