@@ -154,7 +154,7 @@ textarea{line-height:1.5;min-height:110px}
 .reset-row button:hover{border-color:var(--red);color:var(--red);background:var(--red-l)}
 
 /* ── RIGHT PANEL ── */
-.right-panel{display:grid;grid-template-rows:auto 1fr;overflow:hidden}
+.right-panel{display:grid;grid-template-rows:auto auto 1fr;overflow:hidden}
 
 /* machine bar */
 .machine-bar{background:var(--white);border-bottom:1px solid var(--border);
@@ -197,7 +197,25 @@ textarea{line-height:1.5;min-height:110px}
 .how-pill b{font-family:var(--mono);font-size:.6rem;color:var(--amber);
   display:block;text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px}
 
-/* ── PLOT ── */
+/* ── INSIGHT STRIP ── */
+.insight-strip{background:var(--paper);border-bottom:1px solid var(--border);
+  padding:0 1.5rem;max-height:0;overflow:hidden;
+  transition:max-height .5s cubic-bezier(.4,0,.2,1), padding .5s ease;
+  display:flex;align-items:flex-start;gap:.75rem}
+.insight-strip.open{max-height:120px;padding:.75rem 1.5rem}
+.insight-icon{font-size:1.2rem;flex-shrink:0;margin-top:.1rem;
+  animation:popIn .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes popIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.insight-body{flex:1;min-width:0}
+.insight-label{font-family:var(--mono);font-size:.58rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--amber);margin-bottom:.3rem}
+.insight-text{font-size:.8rem;color:var(--ink2);line-height:1.55;
+  animation:fadeUp .4s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.insight-chips{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.4rem}
+.insight-chip{font-family:var(--mono);font-size:.62rem;padding:2px 8px;
+  border-radius:20px;border:1px solid var(--border2);color:var(--ink2);
+  background:var(--white)}
 .plot-wrap{display:grid;grid-template-columns:1fr 260px;overflow:hidden;background:var(--cream)}
 .plot-svg-area{position:relative;overflow:hidden}
 .plot-header{position:absolute;top:.9rem;left:1.2rem;z-index:2;
@@ -378,6 +396,16 @@ textarea{line-height:1.5;min-height:110px}
         <div class="how-pill"><b>① Tokenize</b>Strip stopwords, score words by TF-IDF</div>
         <div class="how-pill"><b>② Compress</b>PCA collapses vocab → 2 axes</div>
         <div class="how-pill"><b>③ Plot</b>Similar books land close together</div>
+      </div>
+    </div>
+
+    <!-- insight strip -->
+    <div class="insight-strip" id="insight-strip">
+      <div class="insight-icon" id="insight-icon">💡</div>
+      <div class="insight-body">
+        <div class="insight-label">What just changed</div>
+        <div class="insight-text" id="insight-text"></div>
+        <div class="insight-chips" id="insight-chips"></div>
       </div>
     </div>
 
@@ -629,6 +657,7 @@ function runMachine(book){
     redrawPlot(true);
     updateLibrary();
     updateBadge();
+    generateInsight(book);
 
     // clear form
     document.getElementById('inp-title').value='';
@@ -701,7 +730,84 @@ function recomputeEmbeddings(){
   });
 }
 
-// ── vector helpers ────────────────────────────────────────────────────────
+// ── insight narrative ─────────────────────────────────────────────────────
+function generateInsight(newBook){
+  const strip = document.getElementById('insight-strip');
+  const iconEl = document.getElementById('insight-icon');
+  const textEl = document.getElementById('insight-text');
+  const chipsEl = document.getElementById('insight-chips');
+
+  const n = books.length;
+
+  // reset animation by re-inserting elements
+  textEl.style.animation = 'none';
+  requestAnimationFrame(()=>{ textEl.style.animation = ''; });
+
+  if(n === 1){
+    iconEl.textContent = '🌱';
+    textEl.textContent = `"${newBook.title}" is the first book in the space. It sits at the origin — there's nothing to compare it to yet. Add another book to see the space come alive.`;
+    chipsEl.innerHTML = '';
+    strip.classList.add('open');
+    return;
+  }
+
+  // find nearest neighbours (excluding the new book)
+  const others = books.filter(b=>b.id !== newBook.id);
+  const withDist = others.map(b=>({
+    book:b,
+    dist: Math.hypot(b.x - newBook.x, b.y - newBook.y)
+  })).sort((a,b)=>a.dist-b.dist);
+
+  const nearest = withDist[0];
+  const farthest = withDist[withDist.length-1];
+
+  // shared keywords between new book and nearest neighbour
+  const newTokens  = new Set(tokenize(newBook.title  + ' ' + newBook.abstract));
+  const nearTokens = new Set(tokenize(nearest.book.title + ' ' + nearest.book.abstract));
+  const shared = [...newTokens].filter(w=>nearTokens.has(w)).slice(0,5);
+
+  // was the space reshuffled significantly? (only meaningful when ≥3 books)
+  const reshuffled = n >= 3;
+
+  // compose message
+  let icon, msg;
+  if(nearest.dist < 20){
+    icon = '🔗';
+    msg = `"${newBook.title}" landed very close to "${nearest.book.title}" — they share similar themes and vocabulary, so the algorithm placed them in the same region.`;
+  } else if(nearest.dist < 50){
+    icon = '📍';
+    msg = `"${newBook.title}" settled near "${nearest.book.title}" with moderate similarity. They have some common ground, but also clear differences that push them apart.`;
+  } else {
+    icon = '🌍';
+    msg = `"${newBook.title}" sits far from everything else — closest to "${nearest.book.title}" but still quite distant. Its themes appear unique in your current library.`;
+  }
+
+  if(reshuffled){
+    msg += ` With ${n} books now embedded, the PCA axes have been recalculated — all positions shifted slightly to best preserve the relative distances between every book.`;
+  }
+
+  iconEl.textContent = icon;
+  textEl.textContent = msg;
+
+  // shared keyword chips
+  chipsEl.innerHTML = '';
+  if(shared.length > 0){
+    const lbl = document.createElement('span');
+    lbl.style.cssText = 'font-family:var(--mono);font-size:.6rem;color:var(--ink3);align-self:center';
+    lbl.textContent = 'shared:';
+    chipsEl.appendChild(lbl);
+    shared.forEach(w=>{
+      const chip = document.createElement('span');
+      chip.className = 'insight-chip';
+      chip.textContent = w;
+      chipsEl.appendChild(chip);
+    });
+  }
+
+  strip.classList.add('open');
+}
+
+
 function normalizeVec(v){
   const mag=Math.sqrt(v.reduce((s,x)=>s+x*x,0))||1;
   return v.map(x=>x/mag);
@@ -1227,6 +1333,7 @@ function resetAll(){
   document.getElementById('results-idle').style.display='flex';
   document.getElementById('results-list').style.display='none';
   document.getElementById('search-btn').disabled=true;
+  document.getElementById('insight-strip').classList.remove('open');
   updateLibrary();
 }
 
