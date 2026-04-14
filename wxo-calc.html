@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>watsonx.data vs Snowflake TCO Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .input-section {
+            grid-column: 1 / -1;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+        }
+
+        .input-section h2 {
+            color: #2a5298;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #495057;
+            font-size: 0.95em;
+        }
+
+        input, select {
+            padding: 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .comparison-card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 2px solid #e9ecef;
+        }
+
+        .comparison-card.watsonx {
+            border-top: 4px solid #0f62fe;
+        }
+
+        .comparison-card.snowflake {
+            border-top: 4px solid #29b5e8;
+        }
+
+        .comparison-card h2 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+        }
+
+        .logo.watsonx {
+            background: #0f62fe;
+        }
+
+        .logo.snowflake {
+            background: #29b5e8;
+        }
+
+        .cost-breakdown {
+            margin: 20px 0;
+        }
+
+        .cost-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            margin: 8px 0;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 3px solid #dee2e6;
+        }
+
+        .cost-item.highlight {
+            background: #e7f3ff;
+            border-left-color: #0f62fe;
+        }
+
+        .cost-label {
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .cost-value {
+            font-weight: 700;
+            color: #212529;
+        }
+
+        .total-cost {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .total-cost .label {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+        }
+
+        .total-cost .amount {
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+
+        .savings-section {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .savings-section h2 {
+            font-size: 2em;
+            margin-bottom: 15px;
+        }
+
+        .savings-amount {
+            font-size: 3em;
+            font-weight: 700;
+            margin: 20px 0;
+        }
+
+        .savings-percentage {
+            font-size: 1.5em;
+            opacity: 0.9;
+        }
+
+        .migration-section {
+            grid-column: 1 / -1;
+            background: #fff3cd;
+            padding: 25px;
+            border-radius: 10px;
+            border: 2px solid #ffc107;
+            margin-top: 20px;
+        }
+
+        .migration-section h3 {
+            color: #856404;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .migration-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .migration-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 3px solid #ffc107;
+        }
+
+        .calculate-btn {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2em;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 20px;
+        }
+
+        .calculate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .calculate-btn:active {
+            transform: translateY(0);
+        }
+
+        .info-tooltip {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            background: #6c757d;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            font-size: 0.8em;
+            line-height: 18px;
+            cursor: help;
+            margin-left: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .input-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .assumptions {
+            grid-column: 1 / -1;
+            background: #e7f3ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #0f62fe;
+        }
+
+        .assumptions h3 {
+            color: #0f62fe;
+            margin-bottom: 10px;
+        }
+
+        .assumptions ul {
+            margin-left: 20px;
+            color: #495057;
+        }
+
+        .assumptions li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💰 TCO Calculator</h1>
+            <p class="subtitle">watsonx.data vs Snowflake - Side-by-Side Comparison</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Input Section -->
+            <div class="input-section">
+                <h2>📊 Configuration Parameters</h2>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label for="clusterSize">Cluster Size</label>
+                        <select id="clusterSize">
+                            <option value="small">Small (S) - Dev/Test</option>
+                            <option value="medium" selected>Medium (M) - Production</option>
+                            <option value="large">Large (L) - High Volume</option>
+                            <option value="xlarge">X-Large (XL) - Enterprise</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="storageSize">Storage Size (TB)</label>
+                        <input type="number" id="storageSize" value="10" min="1" max="1000">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="monthlyQueries">Monthly Queries (thousands)</label>
+                        <input type="number" id="monthlyQueries" value="100" min="1" max="10000">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="avgQueryTime">Avg Query Time (seconds)</label>
+                        <input type="number" id="avgQueryTime" value="30" min="1" max="3600">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="utilizationRate">Cluster Utilization (%)</label>
+                        <input type="number" id="utilizationRate" value="60" min="1" max="100">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="migrationPercent">Migration to watsonx.data (%)</label>
+                        <input type="number" id="migrationPercent" value="50" min="0" max="100">
+                    </div>
+                </div>
+                <button class="calculate-btn" onclick="calculateTCO()">🔄 Calculate TCO</button>
+            </div>
+
+            <!-- watsonx.data Card -->
+            <div class="comparison-card watsonx">
+                <h2>
+                    <div class="logo watsonx">Wx</div>
+                    watsonx.data
+                </h2>
+                <div class="cost-breakdown">
+                    <div class="cost-item">
+                        <span class="cost-label">Presto Compute (monthly)</span>
+                        <span class="cost-value" id="wx-compute">$0</span>
+                    </div>
+                    <div class="cost-item">
+                        <span class="cost-label">Storage (COS)</span>
+                        <span class="cost-value" id="wx-storage">$0</span>
+                    </div>
+                    <div class="cost-item">
+                        <span class="cost-label">Data Transfer</span>
+                        <span class="cost-value" id="wx-transfer">$0</span>
+                    </div>
+                    <div class="cost-item highlight">
+                        <span class="cost-label">Support & Maintenance</span>
+                        <span class="cost-value" id="wx-support">$0</span>
+                    </div>
+                </div>
+                <div class="total-cost">
+                    <div class="label">Monthly Total Cost</div>
+                    <div class="amount" id="wx-total">$0</div>
+                </div>
+            </div>
+
+            <!-- Snowflake Card -->
+            <div class="comparison-card snowflake">
+                <h2>
+                    <div class="logo snowflake">❄️</div>
+                    Snowflake
+                </h2>
+                <div class="cost-breakdown">
+                    <div class="cost-item">
+                        <span class="cost-label">Compute Credits (monthly)</span>
+                        <span class="cost-value" id="sf-compute">$0</span>
+                    </div>
+                    <div class="cost-item">
+                        <span class="cost-label">Storage</span>
+                        <span class="cost-value" id="sf-storage">$0</span>
+                    </div>
+                    <div class="cost-item">
+                        <span class="cost-label">Data Transfer</span>
+                        <span class="cost-value" id="sf-transfer">$0</span>
+                    </div>
+                    <div class="cost-item highlight">
+                        <span class="cost-label">Cloud Services</span>
+                        <span class="cost-value" id="sf-services">$0</span>
+                    </div>
+                </div>
+                <div class="total-cost">
+                    <div class="label">Monthly Total Cost</div>
+                    <div class="amount" id="sf-total">$0</div>
+                </div>
+            </div>
+
+            <!-- Savings Section -->
+            <div class="savings-section">
+                <h2>💵 Potential Savings</h2>
+                <div class="savings-amount" id="savings-amount">$0</div>
+                <div class="savings-percentage" id="savings-percent">0% cost reduction</div>
+                <p style="margin-top: 15px; font-size: 1.1em;">Annual Savings: <strong id="annual-savings">$0</strong></p>
+            </div>
+
+            <!-- Migration Section -->
+            <div class="migration-section">
+                <h3>🔄 Migration Scenario: <span id="migration-title">50% Reporting Workload</span></h3>
+                <p>By migrating <strong id="migration-percent-display">50%</strong> of your reporting workload from Snowflake to watsonx.data Presto:</p>
+                <div class="migration-details">
+                    <div class="migration-item">
+                        <strong>Current Snowflake Cost</strong>
+                        <div style="font-size: 1.5em; color: #dc3545; margin-top: 5px;" id="current-sf-cost">$0</div>
+                    </div>
+                    <div class="migration-item">
+                        <strong>Post-Migration Cost</strong>
+                        <div style="font-size: 1.5em; color: #28a745; margin-top: 5px;" id="post-migration-cost">$0</div>
+                    </div>
+                    <div class="migration-item">
+                        <strong>Monthly Savings</strong>
+                        <div style="font-size: 1.5em; color: #0f62fe; margin-top: 5px;" id="migration-savings">$0</div>
+                    </div>
+                    <div class="migration-item">
+                        <strong>ROI Timeline</strong>
+                        <div style="font-size: 1.5em; color: #6f42c1; margin-top: 5px;" id="roi-timeline">N/A</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assumptions -->
+            <div class="assumptions">
+                <h3>📋 Pricing Assumptions & Notes</h3>
+                <ul>
+                    <li><strong>watsonx.data:</strong> Presto compute at $0.50/vCPU-hour, COS storage at $0.023/GB/month</li>
+                    <li><strong>Snowflake:</strong> Compute credits at $2-4/credit (varies by region), storage at $40/TB/month</li>
+                    <li><strong>Cluster Sizes:</strong> S (4 vCPU), M (8 vCPU), L (16 vCPU), XL (32 vCPU)</li>
+                    <li><strong>Utilization:</strong> Actual compute hours based on utilization percentage</li>
+                    <li><strong>Data Transfer:</strong> Estimated at 5% of storage size monthly</li>
+                    <li>Prices are estimates and may vary based on region, contract terms, and actual usage patterns</li>
+                    <li>watsonx.data offers separation of compute and storage, potentially reducing costs for intermittent workloads</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Pricing constants
+        const PRICING = {
+            watsonx: {
+                computePerVCPUHour: 0.50,
+                storagePerGBMonth: 0.023,
+                dataTransferPerGB: 0.05,
+                supportPercent: 0.10
+            },
+            snowflake: {
+                creditCost: 3.00, // Average credit cost
+                storagePerTBMonth: 40,
+                dataTransferPerGB: 0.08,
+                cloudServicesPercent: 0.10
+            },
+            clusterSizes: {
+                small: { vCPU: 4, snowflakeCreditsPerHour: 1 },
+                medium: { vCPU: 8, snowflakeCreditsPerHour: 2 },
+                large: { vCPU: 16, snowflakeCreditsPerHour: 4 },
+                xlarge: { vCPU: 32, snowflakeCreditsPerHour: 8 }
+            }
+        };
+
+        function calculateTCO() {
+            // Get input values
+            const clusterSize = document.getElementById('clusterSize').value;
+            const storageSize = parseFloat(document.getElementById('storageSize').value);
+            const monthlyQueries = parseFloat(document.getElementById('monthlyQueries').value) * 1000;
+            const avgQueryTime = parseFloat(document.getElementById('avgQueryTime').value);
+            const utilizationRate = parseFloat(document.getElementById('utilizationRate').value) / 100;
+            const migrationPercent = parseFloat(document.getElementById('migrationPercent').value) / 100;
+
+            // Get cluster configuration
+            const cluster = PRICING.clusterSizes[clusterSize];
+            
+            // Calculate compute hours (730 hours per month)
+            const monthlyHours = 730;
+            const actualComputeHours = monthlyHours * utilizationRate;
+
+            // watsonx.data calculations
+            const wxComputeCost = cluster.vCPU * actualComputeHours * PRICING.watsonx.computePerVCPUHour;
+            const wxStorageCost = storageSize * 1024 * PRICING.watsonx.storagePerGBMonth;
+            const wxTransferCost = storageSize * 1024 * 0.05 * PRICING.watsonx.dataTransferPerGB;
+            const wxSupportCost = (wxComputeCost + wxStorageCost) * PRICING.watsonx.supportPercent;
+            const wxTotal = wxComputeCost + wxStorageCost + wxTransferCost + wxSupportCost;
+
+            // Snowflake calculations
+            const sfComputeCost = cluster.snowflakeCreditsPerHour * actualComputeHours * PRICING.snowflake.creditCost;
+            const sfStorageCost = storageSize * PRICING.snowflake.storagePerTBMonth;
+            const sfTransferCost = storageSize * 1024 * 0.05 * PRICING.snowflake.dataTransferPerGB;
+            const sfServicesCost = (sfComputeCost + sfStorageCost) * PRICING.snowflake.cloudServicesPercent;
+            const sfTotal = sfComputeCost + sfStorageCost + sfTransferCost + sfServicesCost;
+
+            // Update watsonx.data display
+            document.getElementById('wx-compute').textContent = formatCurrency(wxComputeCost);
+            document.getElementById('wx-storage').textContent = formatCurrency(wxStorageCost);
+            document.getElementById('wx-transfer').textContent = formatCurrency(wxTransferCost);
+            document.getElementById('wx-support').textContent = formatCurrency(wxSupportCost);
+            document.getElementById('wx-total').textContent = formatCurrency(wxTotal);
+
+            // Update Snowflake display
+            document.getElementById('sf-compute').textContent = formatCurrency(sfComputeCost);
+            document.getElementById('sf-storage').textContent = formatCurrency(sfStorageCost);
+            document.getElementById('sf-transfer').textContent = formatCurrency(sfTransferCost);
+            document.getElementById('sf-services').textContent = formatCurrency(sfServicesCost);
+            document.getElementById('sf-total').textContent = formatCurrency(sfTotal);
+
+            // Calculate savings
+            const monthlySavings = sfTotal - wxTotal;
+            const savingsPercent = ((monthlySavings / sfTotal) * 100).toFixed(1);
+            const annualSavings = monthlySavings * 12;
+
+            document.getElementById('savings-amount').textContent = formatCurrency(monthlySavings);
+            document.getElementById('savings-percent').textContent = `${savingsPercent}% cost reduction`;
+            document.getElementById('annual-savings').textContent = formatCurrency(annualSavings);
+
+            // Migration scenario calculations
+            const migratedWorkloadCost = sfTotal * migrationPercent;
+            const wxMigrationCost = wxTotal * migrationPercent;
+            const remainingSnowflakeCost = sfTotal * (1 - migrationPercent);
+            const postMigrationTotal = remainingSnowflakeCost + wxMigrationCost;
+            const migrationSavings = sfTotal - postMigrationTotal;
+            const roiMonths = migrationSavings > 0 ? Math.ceil(5000 / migrationSavings) : 'N/A';
+
+            document.getElementById('migration-title').textContent = 
+                `${(migrationPercent * 100).toFixed(0)}% Reporting Workload Migration`;
+            document.getElementById('migration-percent-display').textContent = 
+                `${(migrationPercent * 100).toFixed(0)}%`;
+            document.getElementById('current-sf-cost').textContent = formatCurrency(sfTotal);
+            document.getElementById('post-migration-cost').textContent = formatCurrency(postMigrationTotal);
+            document.getElementById('migration-savings').textContent = formatCurrency(migrationSavings);
+            document.getElementById('roi-timeline').textContent = 
+                typeof roiMonths === 'number' ? `${roiMonths} months` : roiMonths;
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        // Calculate on page load
+        window.addEventListener('load', calculateTCO);
+
+        // Add event listeners for real-time updates
+        document.querySelectorAll('input, select').forEach(element => {
+            element.addEventListener('change', calculateTCO);
+            element.addEventListener('input', calculateTCO);
+        });
+    </script>
+</body>
+</html>
