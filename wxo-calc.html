@@ -315,6 +315,151 @@
         .assumptions li {
             margin: 5px 0;
         }
+
+        .engine-section {
+            grid-column: 1 / -1;
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            margin-top: 20px;
+        }
+
+        .engine-section h3 {
+            color: #2a5298;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .engine-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .engine-item {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #dee2e6;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .engine-item.presto {
+            border-left: 4px solid #0f62fe;
+        }
+
+        .engine-item.spark {
+            border-left: 4px solid #ff6b35;
+        }
+
+        .engine-badge {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            color: white;
+            font-size: 0.9em;
+        }
+
+        .engine-badge.presto {
+            background: #0f62fe;
+        }
+
+        .engine-badge.spark {
+            background: #ff6b35;
+        }
+
+        .engine-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            flex: 1;
+        }
+
+        .engine-controls select,
+        .engine-controls input {
+            padding: 8px;
+            font-size: 0.9em;
+        }
+
+        .remove-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .remove-btn:hover {
+            background: #c82333;
+        }
+
+        .add-engine-btns {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .add-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+            flex: 1;
+        }
+
+        .add-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .add-btn.presto {
+            background: linear-gradient(135deg, #0f62fe 0%, #0353e9 100%);
+        }
+
+        .add-btn.spark {
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+        }
+
+        .engine-summary {
+            background: #e7f3ff;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            border-left: 3px solid #0f62fe;
+        }
+
+        .engine-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .engine-summary-item {
+            text-align: center;
+        }
+
+        .engine-summary-item .label {
+            font-size: 0.85em;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+        .engine-summary-item .value {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #0f62fe;
+        }
     </style>
 </head>
 <body>
@@ -329,16 +474,6 @@
             <div class="input-section">
                 <h2>📊 Configuration Parameters</h2>
                 <div class="input-grid">
-                    <div class="input-group">
-                        <label for="clusterSize">Cluster Size</label>
-                        <select id="clusterSize">
-                            <option value="small">Small (S) - Dev/Test</option>
-                            <option value="medium" selected>Medium (M) - Production</option>
-                            <option value="large">Large (L) - High Volume</option>
-                            <option value="xlarge">X-Large (XL) - Enterprise</option>
-                        </select>
-                    </div>
-
                     <div class="input-group">
                         <label for="storageSize">Storage Size (TB)</label>
                         <input type="number" id="storageSize" value="10" min="1" max="1000">
@@ -355,13 +490,41 @@
                     </div>
 
                     <div class="input-group">
-                        <label for="utilizationRate">Cluster Utilization (%)</label>
-                        <input type="number" id="utilizationRate" value="60" min="1" max="100">
-                    </div>
-
-                    <div class="input-group">
                         <label for="migrationPercent">Migration to watsonx.data (%)</label>
                         <input type="number" id="migrationPercent" value="50" min="0" max="100">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Engine Configuration Section -->
+            <div class="engine-section">
+                <h3>⚙️ watsonx.data Engine Configuration</h3>
+                <div id="engine-list" class="engine-list">
+                    <!-- Engines will be added dynamically -->
+                </div>
+                <div class="add-engine-btns">
+                    <button class="add-btn presto" onclick="addEngine('presto')">➕ Add Presto Engine</button>
+                    <button class="add-btn spark" onclick="addEngine('spark')">➕ Add Spark Engine</button>
+                </div>
+                <div class="engine-summary">
+                    <strong>Engine Summary:</strong>
+                    <div class="engine-summary-grid">
+                        <div class="engine-summary-item">
+                            <div class="label">Total Presto Engines</div>
+                            <div class="value" id="total-presto">0</div>
+                        </div>
+                        <div class="engine-summary-item">
+                            <div class="label">Total Spark Engines</div>
+                            <div class="value" id="total-spark">0</div>
+                        </div>
+                        <div class="engine-summary-item">
+                            <div class="label">Total vCPUs</div>
+                            <div class="value" id="total-vcpus">0</div>
+                        </div>
+                        <div class="engine-summary-item">
+                            <div class="label">Combined Compute Cost</div>
+                            <div class="value" id="total-compute-cost">$0</div>
+                        </div>
                     </div>
                 </div>
                 <button class="calculate-btn" onclick="calculateTCO()">🔄 Calculate TCO</button>
@@ -375,8 +538,12 @@
                 </h2>
                 <div class="cost-breakdown">
                     <div class="cost-item">
-                        <span class="cost-label">Presto Compute (monthly)</span>
-                        <span class="cost-value" id="wx-compute">$0</span>
+                        <span class="cost-label">Presto Engines Compute</span>
+                        <span class="cost-value" id="wx-presto-compute">$0</span>
+                    </div>
+                    <div class="cost-item">
+                        <span class="cost-label">Spark Engines Compute</span>
+                        <span class="cost-value" id="wx-spark-compute">$0</span>
                     </div>
                     <div class="cost-item">
                         <span class="cost-label">Storage (COS)</span>
@@ -463,11 +630,13 @@
             <div class="assumptions">
                 <h3>📋 Pricing Assumptions & Notes</h3>
                 <ul>
-                    <li><strong>watsonx.data:</strong> Presto compute at $0.50/vCPU-hour, COS storage at $0.023/GB/month</li>
+                    <li><strong>watsonx.data Presto:</strong> Compute at $0.50/vCPU-hour, COS storage at $0.023/GB/month</li>
+                    <li><strong>watsonx.data Spark:</strong> Compute at $0.70/vCPU-hour (includes Spark overhead)</li>
                     <li><strong>Snowflake:</strong> Compute credits at $2-4/credit (varies by region), storage at $40/TB/month</li>
                     <li><strong>Cluster Sizes:</strong> S (4 vCPU), M (8 vCPU), L (16 vCPU), XL (32 vCPU)</li>
-                    <li><strong>Utilization:</strong> Actual compute hours based on utilization percentage</li>
+                    <li><strong>Utilization:</strong> Actual compute hours based on utilization percentage per engine</li>
                     <li><strong>Data Transfer:</strong> Estimated at 5% of storage size monthly</li>
+                    <li><strong>Multiple Engines:</strong> You can add multiple Presto and Spark engines with different configurations</li>
                     <li>Prices are estimates and may vary based on region, contract terms, and actual usage patterns</li>
                     <li>watsonx.data offers separation of compute and storage, potentially reducing costs for intermittent workloads</li>
                 </ul>
@@ -479,13 +648,14 @@
         // Pricing constants
         const PRICING = {
             watsonx: {
-                computePerVCPUHour: 0.50,
+                prestoPerVCPUHour: 0.50,
+                sparkPerVCPUHour: 0.70,
                 storagePerGBMonth: 0.023,
                 dataTransferPerGB: 0.05,
                 supportPercent: 0.10
             },
             snowflake: {
-                creditCost: 3.00, // Average credit cost
+                creditCost: 3.00,
                 storagePerTBMonth: 40,
                 dataTransferPerGB: 0.08,
                 cloudServicesPercent: 0.10
@@ -498,42 +668,134 @@
             }
         };
 
+        // Engine management
+        let engines = [];
+        let engineIdCounter = 0;
+
+        function addEngine(type) {
+            const engineId = engineIdCounter++;
+            const engine = {
+                id: engineId,
+                type: type,
+                size: 'medium',
+                utilization: 60
+            };
+            engines.push(engine);
+            renderEngines();
+            calculateTCO();
+        }
+
+        function removeEngine(engineId) {
+            engines = engines.filter(e => e.id !== engineId);
+            renderEngines();
+            calculateTCO();
+        }
+
+        function updateEngine(engineId, field, value) {
+            const engine = engines.find(e => e.id === engineId);
+            if (engine) {
+                engine[field] = value;
+                calculateTCO();
+            }
+        }
+
+        function renderEngines() {
+            const engineList = document.getElementById('engine-list');
+            engineList.innerHTML = '';
+
+            engines.forEach(engine => {
+                const engineItem = document.createElement('div');
+                engineItem.className = `engine-item ${engine.type}`;
+                engineItem.innerHTML = `
+                    <div class="engine-badge ${engine.type}">
+                        ${engine.type === 'presto' ? '🔷 Presto' : '⚡ Spark'}
+                    </div>
+                    <div class="engine-controls">
+                        <select onchange="updateEngine(${engine.id}, 'size', this.value)">
+                            <option value="small" ${engine.size === 'small' ? 'selected' : ''}>Small (4 vCPU)</option>
+                            <option value="medium" ${engine.size === 'medium' ? 'selected' : ''}>Medium (8 vCPU)</option>
+                            <option value="large" ${engine.size === 'large' ? 'selected' : ''}>Large (16 vCPU)</option>
+                            <option value="xlarge" ${engine.size === 'xlarge' ? 'selected' : ''}>X-Large (32 vCPU)</option>
+                        </select>
+                        <input type="number" value="${engine.utilization}" min="1" max="100"
+                               placeholder="Utilization %"
+                               onchange="updateEngine(${engine.id}, 'utilization', parseInt(this.value))">
+                    </div>
+                    <button class="remove-btn" onclick="removeEngine(${engine.id})">✕ Remove</button>
+                `;
+                engineList.appendChild(engineItem);
+            });
+
+            updateEngineSummary();
+        }
+
+        function updateEngineSummary() {
+            const prestoCount = engines.filter(e => e.type === 'presto').length;
+            const sparkCount = engines.filter(e => e.type === 'spark').length;
+            const totalVCPUs = engines.reduce((sum, e) => sum + PRICING.clusterSizes[e.size].vCPU, 0);
+
+            document.getElementById('total-presto').textContent = prestoCount;
+            document.getElementById('total-spark').textContent = sparkCount;
+            document.getElementById('total-vcpus').textContent = totalVCPUs;
+        }
+
         function calculateTCO() {
             // Get input values
-            const clusterSize = document.getElementById('clusterSize').value;
-            const storageSize = parseFloat(document.getElementById('storageSize').value);
-            const monthlyQueries = parseFloat(document.getElementById('monthlyQueries').value) * 1000;
-            const avgQueryTime = parseFloat(document.getElementById('avgQueryTime').value);
-            const utilizationRate = parseFloat(document.getElementById('utilizationRate').value) / 100;
-            const migrationPercent = parseFloat(document.getElementById('migrationPercent').value) / 100;
+            const storageSize = parseFloat(document.getElementById('storageSize').value) || 0;
+            const monthlyQueries = parseFloat(document.getElementById('monthlyQueries').value) * 1000 || 0;
+            const avgQueryTime = parseFloat(document.getElementById('avgQueryTime').value) || 0;
+            const migrationPercent = parseFloat(document.getElementById('migrationPercent').value) / 100 || 0;
 
-            // Get cluster configuration
-            const cluster = PRICING.clusterSizes[clusterSize];
-            
-            // Calculate compute hours (730 hours per month)
             const monthlyHours = 730;
-            const actualComputeHours = monthlyHours * utilizationRate;
 
-            // watsonx.data calculations
-            const wxComputeCost = cluster.vCPU * actualComputeHours * PRICING.watsonx.computePerVCPUHour;
+            // Calculate watsonx.data costs for all engines
+            let prestoCost = 0;
+            let sparkCost = 0;
+            let totalVCPUs = 0;
+
+            engines.forEach(engine => {
+                const cluster = PRICING.clusterSizes[engine.size];
+                const actualHours = monthlyHours * (engine.utilization / 100);
+                const vCPUs = cluster.vCPU;
+                totalVCPUs += vCPUs;
+
+                if (engine.type === 'presto') {
+                    prestoCost += vCPUs * actualHours * PRICING.watsonx.prestoPerVCPUHour;
+                } else {
+                    sparkCost += vCPUs * actualHours * PRICING.watsonx.sparkPerVCPUHour;
+                }
+            });
+
+            const wxComputeCost = prestoCost + sparkCost;
             const wxStorageCost = storageSize * 1024 * PRICING.watsonx.storagePerGBMonth;
             const wxTransferCost = storageSize * 1024 * 0.05 * PRICING.watsonx.dataTransferPerGB;
             const wxSupportCost = (wxComputeCost + wxStorageCost) * PRICING.watsonx.supportPercent;
             const wxTotal = wxComputeCost + wxStorageCost + wxTransferCost + wxSupportCost;
 
-            // Snowflake calculations
-            const sfComputeCost = cluster.snowflakeCreditsPerHour * actualComputeHours * PRICING.snowflake.creditCost;
+            // Snowflake calculations (using average of all engines for comparison)
+            const avgUtilization = engines.length > 0
+                ? engines.reduce((sum, e) => sum + e.utilization, 0) / engines.length / 100
+                : 0.6;
+            const avgSize = engines.length > 0
+                ? engines[0].size
+                : 'medium';
+            const sfCluster = PRICING.clusterSizes[avgSize];
+            const sfActualHours = monthlyHours * avgUtilization * engines.length;
+            
+            const sfComputeCost = sfCluster.snowflakeCreditsPerHour * sfActualHours * PRICING.snowflake.creditCost;
             const sfStorageCost = storageSize * PRICING.snowflake.storagePerTBMonth;
             const sfTransferCost = storageSize * 1024 * 0.05 * PRICING.snowflake.dataTransferPerGB;
             const sfServicesCost = (sfComputeCost + sfStorageCost) * PRICING.snowflake.cloudServicesPercent;
             const sfTotal = sfComputeCost + sfStorageCost + sfTransferCost + sfServicesCost;
 
             // Update watsonx.data display
-            document.getElementById('wx-compute').textContent = formatCurrency(wxComputeCost);
+            document.getElementById('wx-presto-compute').textContent = formatCurrency(prestoCost);
+            document.getElementById('wx-spark-compute').textContent = formatCurrency(sparkCost);
             document.getElementById('wx-storage').textContent = formatCurrency(wxStorageCost);
             document.getElementById('wx-transfer').textContent = formatCurrency(wxTransferCost);
             document.getElementById('wx-support').textContent = formatCurrency(wxSupportCost);
             document.getElementById('wx-total').textContent = formatCurrency(wxTotal);
+            document.getElementById('total-compute-cost').textContent = formatCurrency(wxComputeCost);
 
             // Update Snowflake display
             document.getElementById('sf-compute').textContent = formatCurrency(sfComputeCost);
@@ -544,7 +806,7 @@
 
             // Calculate savings
             const monthlySavings = sfTotal - wxTotal;
-            const savingsPercent = ((monthlySavings / sfTotal) * 100).toFixed(1);
+            const savingsPercent = sfTotal > 0 ? ((monthlySavings / sfTotal) * 100).toFixed(1) : 0;
             const annualSavings = monthlySavings * 12;
 
             document.getElementById('savings-amount').textContent = formatCurrency(monthlySavings);
@@ -552,21 +814,20 @@
             document.getElementById('annual-savings').textContent = formatCurrency(annualSavings);
 
             // Migration scenario calculations
-            const migratedWorkloadCost = sfTotal * migrationPercent;
-            const wxMigrationCost = wxTotal * migrationPercent;
             const remainingSnowflakeCost = sfTotal * (1 - migrationPercent);
+            const wxMigrationCost = wxTotal * migrationPercent;
             const postMigrationTotal = remainingSnowflakeCost + wxMigrationCost;
             const migrationSavings = sfTotal - postMigrationTotal;
             const roiMonths = migrationSavings > 0 ? Math.ceil(5000 / migrationSavings) : 'N/A';
 
-            document.getElementById('migration-title').textContent = 
+            document.getElementById('migration-title').textContent =
                 `${(migrationPercent * 100).toFixed(0)}% Reporting Workload Migration`;
-            document.getElementById('migration-percent-display').textContent = 
+            document.getElementById('migration-percent-display').textContent =
                 `${(migrationPercent * 100).toFixed(0)}%`;
             document.getElementById('current-sf-cost').textContent = formatCurrency(sfTotal);
             document.getElementById('post-migration-cost').textContent = formatCurrency(postMigrationTotal);
             document.getElementById('migration-savings').textContent = formatCurrency(migrationSavings);
-            document.getElementById('roi-timeline').textContent = 
+            document.getElementById('roi-timeline').textContent =
                 typeof roiMonths === 'number' ? `${roiMonths} months` : roiMonths;
         }
 
@@ -579,8 +840,10 @@
             }).format(amount);
         }
 
-        // Calculate on page load
-        window.addEventListener('load', calculateTCO);
+        // Initialize with one Presto engine
+        window.addEventListener('load', () => {
+            addEngine('presto');
+        });
 
         // Add event listeners for real-time updates
         document.querySelectorAll('input, select').forEach(element => {
