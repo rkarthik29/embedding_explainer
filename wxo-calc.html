@@ -711,15 +711,21 @@
                         ${engine.type === 'presto' ? '🔷 Presto' : '⚡ Spark'}
                     </div>
                     <div class="engine-controls">
-                        <select onchange="updateEngine(${engine.id}, 'size', this.value)">
-                            <option value="small" ${engine.size === 'small' ? 'selected' : ''}>Small (4 vCPU)</option>
-                            <option value="medium" ${engine.size === 'medium' ? 'selected' : ''}>Medium (8 vCPU)</option>
-                            <option value="large" ${engine.size === 'large' ? 'selected' : ''}>Large (16 vCPU)</option>
-                            <option value="xlarge" ${engine.size === 'xlarge' ? 'selected' : ''}>X-Large (32 vCPU)</option>
-                        </select>
-                        <input type="number" value="${engine.utilization}" min="1" max="100"
-                               placeholder="Utilization %"
-                               onchange="updateEngine(${engine.id}, 'utilization', parseInt(this.value))">
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <label style="font-size: 0.85em; color: #6c757d; font-weight: 600;">Cluster Size</label>
+                            <select onchange="updateEngine(${engine.id}, 'size', this.value)">
+                                <option value="small" ${engine.size === 'small' ? 'selected' : ''}>Small (4 vCPU)</option>
+                                <option value="medium" ${engine.size === 'medium' ? 'selected' : ''}>Medium (8 vCPU)</option>
+                                <option value="large" ${engine.size === 'large' ? 'selected' : ''}>Large (16 vCPU)</option>
+                                <option value="xlarge" ${engine.size === 'xlarge' ? 'selected' : ''}>X-Large (32 vCPU)</option>
+                            </select>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 5px;">
+                            <label style="font-size: 0.85em; color: #6c757d; font-weight: 600;">Utilization %</label>
+                            <input type="number" value="${engine.utilization}" min="1" max="100"
+                                   placeholder="Utilization %"
+                                   onchange="updateEngine(${engine.id}, 'utilization', parseInt(this.value))">
+                        </div>
                     </div>
                     <button class="remove-btn" onclick="removeEngine(${engine.id})">✕ Remove</button>
                 `;
