@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DataStax + IBM — Integration Benefits</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --blue:    #185FA5;
+    --blue-lt: #E6F1FB;
+    --blue-dk: #0C447C;
+    --teal:    #0F6E56;
+    --teal-lt: #E1F5EE;
+    --teal-dk: #085041;
+    --purple:  #534AB7;
+    --purple-lt:#EEEDFE;
+    --purple-dk:#3C3489;
+    --coral:   #993C1D;
+    --coral-lt:#FAECE7;
+    --coral-dk:#712B13;
+    --gray:    #5F5E5A;
+    --gray-lt: #F1EFE8;
+    --gray-dk: #444441;
+    --text:    #161616;
+    --text-2:  #525252;
+    --text-3:  #8D8D8D;
+    --border:  #E0E0E0;
+    --bg:      #F4F4F4;
+    --surface: #FFFFFF;
+    --radius:  6px;
+    --shadow:  0 1px 3px rgba(0,0,0,.08), 0 4px 12px rgba(0,0,0,.06);
+    --shadow-hover: 0 4px 8px rgba(0,0,0,.1), 0 12px 24px rgba(0,0,0,.08);
+  }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: #161616;
+    padding: 28px 40px 0;
+    border-bottom: 1px solid #393939;
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .ibm-logo {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    color: #fff;
+    opacity: .9;
+    text-transform: uppercase;
+  }
+  .header-divider { width: 1px; height: 18px; background: #525252; }
+  .header-title {
+    font-size: 13px;
+    font-weight: 400;
+    color: #C6C6C6;
+    letter-spacing: .02em;
+  }
+
+  /* Bridge row */
+  .bridge {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+  .bridge-box {
+    cursor: pointer;
+    padding: 14px 22px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    border: 1px solid transparent;
+    border-bottom: none;
+    transition: opacity .15s, transform .15s;
+    user-select: none;
+    position: relative;
+    bottom: -1px;
+  }
+  .bridge-box:hover { opacity: .85; transform: translateY(-2px); }
+  .bridge-box .box-label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .01em;
+  }
+  .bridge-box .box-sub {
+    font-size: 11px;
+    font-weight: 400;
+    margin-top: 2px;
+    opacity: .7;
+  }
+  .bridge-box.coral  { background: var(--coral-lt); border-color: #F0997B; }
+  .bridge-box.coral  .box-label { color: var(--coral-dk); }
+  .bridge-box.coral  .box-sub   { color: var(--coral); }
+  .bridge-box.blue   { background: var(--blue-lt);   border-color: #85B7EB; }
+  .bridge-box.blue   .box-label { color: var(--blue-dk); }
+  .bridge-box.blue   .box-sub   { color: var(--blue); }
+  .bridge-box.teal   { background: var(--teal-lt);   border-color: #5DCAA5; }
+  .bridge-box.teal   .box-label { color: var(--teal-dk); }
+  .bridge-box.teal   .box-sub   { color: var(--teal); }
+
+  .bridge-arrow {
+    color: #6F6F6F;
+    font-size: 18px;
+    padding: 0 10px;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+  }
+
+  /* ── Main grid area ── */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 36px 40px 60px;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 20px;
+  }
+
+  /* Column headers */
+  .col-headers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .col-header {
+    padding: 12px 18px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .02em;
+  }
+  .col-header.blue   { background: var(--blue);   color: #fff; }
+  .col-header.teal   { background: var(--teal);   color: #fff; }
+  .col-header.purple { background: var(--purple); color: #fff; }
+
+  /* Card grid */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: box-shadow .2s, transform .2s, border-color .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: var(--radius) 0 0 var(--radius);
+    transition: width .2s;
+  }
+  .card.blue::before   { background: var(--blue); }
+  .card.teal::before   { background: var(--teal); }
+  .card.purple::before { background: var(--purple); }
+  .card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); border-color: #C6C6C6; }
+  .card:hover::before { width: 4px; }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .card-sub {
+    font-size: 11px;
+    color: var(--text-2);
+    font-weight: 400;
+  }
+  .card-cta {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    margin-top: 10px;
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  .card.blue   .card-cta { color: var(--blue); }
+  .card.teal   .card-cta { color: var(--teal); }
+  .card.purple .card-cta { color: var(--purple); }
+  .card:hover .card-cta { opacity: 1; }
+
+  /* Enterprise footer strip */
+  .enterprise-strip {
+    background: var(--gray-lt);
+    border: 1px solid #D3D1C7;
+    border-radius: var(--radius);
+    padding: 18px 24px;
+    cursor: pointer;
+    transition: box-shadow .2s, transform .2s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  .enterprise-strip:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); }
+  .enterprise-strip .es-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-dk);
+  }
+  .enterprise-strip .es-sub {
+    font-size: 12px;
+    color: var(--gray);
+    margin-top: 3px;
+  }
+  .enterprise-strip .es-cta {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--gray-dk);
+    white-space: nowrap;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  /* ── Modal ── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(22,22,22,.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+    backdrop-filter: blur(2px);
+  }
+  .overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .modal {
+    background: var(--surface);
+    border-radius: 10px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+    transform: translateY(16px) scale(.98);
+    transition: transform .25s cubic-bezier(.22,1,.36,1);
+    position: relative;
+  }
+  .overlay.open .modal {
+    transform: translateY(0) scale(1);
+  }
+  .modal-header {
+    padding: 24px 24px 18px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .modal-pill {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 99px;
+    margin-bottom: 8px;
+  }
+  .modal-pill.blue   { background: var(--blue-lt);   color: var(--blue-dk); }
+  .modal-pill.teal   { background: var(--teal-lt);   color: var(--teal-dk); }
+  .modal-pill.purple { background: var(--purple-lt); color: var(--purple-dk); }
+  .modal-pill.coral  { background: var(--coral-lt);  color: var(--coral-dk); }
+  .modal-pill.gray   { background: var(--gray-lt);   color: var(--gray-dk); }
+
+  .modal-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .modal-close {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+    cursor: pointer;
+    color: var(--text-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background .15s, color .15s;
+    line-height: 1;
+  }
+  .modal-close:hover { background: var(--bg); color: var(--text); }
+
+  .modal-body {
+    padding: 22px 24px 28px;
+  }
+  .modal-lead {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-2);
+    line-height: 1.7;
+    margin-bottom: 20px;
+  }
+  .modal-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 10px;
+    margin-top: 20px;
+  }
+  .modal-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .modal-list li {
+    display: flex;
+    gap: 10px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .modal-list li::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-top: 7px;
+    flex-shrink: 0;
+  }
+  .modal-list.blue   li::before { background: var(--blue); }
+  .modal-list.teal   li::before { background: var(--teal); }
+  .modal-list.purple li::before { background: var(--purple); }
+  .modal-list.coral  li::before { background: var(--coral); }
+  .modal-list.gray   li::before { background: var(--gray); }
+
+  .modal-code {
+    background: #F4F4F4;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: #161616;
+    margin-top: 14px;
+    line-height: 1.6;
+    overflow-x: auto;
+    white-space: pre;
+  }
+
+  .modal-note {
+    background: var(--blue-lt);
+    border-left: 3px solid var(--blue);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: var(--blue-dk);
+    margin-top: 18px;
+    line-height: 1.6;
+  }
+  .modal-note.teal   { background: var(--teal-lt);   border-color: var(--teal);   color: var(--teal-dk); }
+  .modal-note.purple { background: var(--purple-lt); border-color: var(--purple); color: var(--purple-dk); }
+  .modal-note.coral  { background: var(--coral-lt);  border-color: var(--coral);  color: var(--coral-dk); }
+  .modal-note.gray   { background: var(--gray-lt);   border-color: var(--gray);   color: var(--gray-dk); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <span class="ibm-logo">IBM</span>
+    <div class="header-divider"></div>
+    <span class="header-title">watsonx.data — DataStax Integration Value</span>
+  </div>
+  <div class="bridge">
+    <div class="bridge-box coral" data-modal="datastax">
+      <div class="box-label">DataStax / DSE</div>
+      <div class="box-sub">Existing workload</div>
+    </div>
+    <div class="bridge-arrow">→</div>
+    <div class="bridge-box blue" data-modal="watsonx">
+      <div class="box-label">IBM watsonx.data</div>
+      <div class="box-sub">Open lakehouse platform</div>
+    </div>
+    <div class="bridge-arrow">→</div>
+    <div class="bridge-box teal" data-modal="ibm-support">
+      <div class="box-label">IBM enterprise support</div>
+      <div class="box-sub">Named CSE · SLAs</div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="section-label">Key integration benefits</div>
+
+  <div class="col-headers">
+    <div class="col-header blue">Presto integration</div>
+    <div class="col-header teal">Spark + Iceberg</div>
+    <div class="col-header purple">Enterprise security</div>
+  </div>
+
+  <div class="card-grid">
+    <div class="card blue" data-modal="sql-fed">
+      <div class="card-title">SQL federation</div>
+      <div class="card-sub">Join DSE + Iceberg + S3</div>
+      <div class="card-cta">Learn more →</div>
+    </div>
+    <div class="card teal" data-modal="etl">
+      <div class="card-title">ETL pipelines</div>
+      <div class="card-sub">DSE → Iceberg write-back</div>
+      <div class="card-cta">Learn more →</div>
+    </div>
+    <div class="card purple" data-modal="iam">
+      <div class="card-title">IAM integration</div>
+      <div class="card-sub">IBM Cloud IAM + RBAC</div>
+      <div class="card-cta">Learn more →</div>
+    </div>
+
+    <div class="card blue" data-modal="olap">
+      <div class="card-title">Low-latency analytics</div>
+      <div class="card-sub">OLAP over live DSE data</div>
+      <div class="card-cta">Learn more →</div>
+    </div>
+    <div class="card teal" data-modal="ml">
+      <div class="card-title">ML + AI workloads</div>
+      <div class="card-sub">ML feature engineering</div>
+      <div class="card-cta">Learn more →</div>
+    </div>
+    <div class="card purple" data-modal="col-access">
+      <div class="card-title">Column-level access</div>
+      <div class="card-sub">Row + column masking</div>
+      <div class="card-cta">Learn more →</div>
+    </div>
+
+    <div class="card blue" data-modal="open-format">
+      <div class="card-title">Open format support</div>
+      <div class="card-sub">Iceberg, Hudi, Delta</div>
+      <div class="card-cta">Learn more →</div>
+    </div>
+    <div class="card teal" data-modal="compaction">
+      <div class="card-title">Iceberg compaction</div>
+      <div class="card-sub">Auto file compaction</div>
+      <div class="card-cta">Learn more →</div>
+    </div>
+    <div class="card purple" data-modal="audit">
+      <div class="card-title">Audit + compliance</div>
+      <div class="card-sub">SOC2, HIPAA, FedRAMP</div>
+      <div class="card-cta">Learn more →</div>
+    </div>
+
+    <div class="card blue" data-modal="mixed-engine">
+      <div class="card-title">Mixed-engine queries</div>
+      <div class="card-sub">Concurrent engine access</div>
+      <div class="card-cta">Learn more →</div>
+    </div>
+    <div class="card teal" data-modal="streaming">
+      <div class="card-title">Streaming ingest</div>
+      <div class="card-sub">Real-time DSE ingest</div>
+      <div class="card-cta">Learn more →</div>
+    </div>
+    <div class="card purple" data-modal="encryption">
+      <div class="card-title">Encryption at rest</div>
+      <div class="card-sub">BYOK + Key Protect</div>
+      <div class="card-cta">Learn more →</div>
+    </div>
+  </div>
+
+  <div class="enterprise-strip" data-modal="enterprise">
+    <div>
+      <div class="es-title">IBM Garage co-creation · roadmap access · 24×7 named CSE coverage</div>
+      <div class="es-sub">Single-vendor accountability across DSE, Presto, Spark, and storage</div>
+    </div>
+    <div class="es-cta">View details →</div>
+  </div>
+</main>
+
+<!-- Modal overlay -->
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-pill" id="modal-pill"></div>
+        <div class="modal-title" id="modal-title"></div>
+      </div>
+      <button class="modal-close" id="modal-close">&#x2715;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script>
+const modals = {
+  datastax: {
+    pill: 'coral', pillText: 'Existing workload',
+    title: 'DataStax / DSE',
+    lead: 'DataStax Enterprise (DSE) is a production-hardened distribution of Apache Cassandra, optimized for high-throughput, low-latency operational workloads. It excels at transactional reads and writes but lacks native analytical capabilities.',
+    sections: [
+      {
+        heading: 'What DSE does well',
+        color: 'coral',
+        items: [
+          'Sub-millisecond point lookups by partition key',
+          'Linear horizontal scale with consistent performance',
+          'Multi-datacenter replication and active-active topologies',
+          'High write throughput — ideal for IoT, telemetry, user activity',
+          'Search via DSE Search (Solr-backed), SAI indexes for secondary access',
+        ]
+      },
+      {
+        heading: 'Where IBM fills the gap',
+        color: 'coral',
+        items: [
+          'No native SQL analytics layer — Presto provides this over live DSE data',
+          'No long-term historical storage — Iceberg handles cold data beyond DSE retention',
+          'No ML pipeline — Spark + watsonx.ai connects DSE features to model training',
+          'No enterprise RBAC/column masking — IBM Data Access Service covers this',
+        ]
+      }
+    ],
+    note: { color: 'coral', text: 'IBM\'s value proposition: you keep DSE as the operational hot tier. IBM adds the analytics, AI, and governance layer on top — without touching your existing schema or application code.' }
+  },
+
+  watsonx: {
+    pill: 'blue', pillText: 'Platform',
+    title: 'IBM watsonx.data',
+    lead: 'IBM watsonx.data is an open lakehouse platform that combines Apache Iceberg table format, Presto (SQL analytics engine), and Apache Spark (batch/streaming engine) on a unified metadata catalog. It runs on IBM Cloud SaaS or self-managed.',
+    sections: [
+      {
+        heading: 'Core platform components',
+        color: 'blue',
+        items: [
+          'Presto engine — interactive SQL analytics, sub-second to low-second latency',
+          'Apache Spark engine — batch ETL, ML feature engineering, Iceberg maintenance',
+          'IBM Metastore Service (MDS) — Hive-compatible catalog with fine-grained access control',
+          'IBM Cloud Object Storage — Iceberg data on S3-compatible storage',
+          'Data Access Service — column masking, row filtering, audit logging',
+        ]
+      },
+      {
+        heading: 'How DSE connects',
+        color: 'blue',
+        items: [
+          'Presto Cassandra connector reads DSE token ring splits in parallel',
+          'Spark-Cassandra Connector (DataStax) writes to / reads from DSE natively',
+          'No data migration required — DSE remains the operational store',
+          'Federated queries join DSE tables with Iceberg tables in a single SQL statement',
+        ]
+      }
+    ],
+    note: { color: 'blue', text: 'Soft limits: 2 Presto engines and 3 Spark engines per watsonx.data instance. These can be increased via IBM support — raise a ticket referencing your use case.' }
+  },
+
+  'ibm-support': {
+    pill: 'teal', pillText: 'Support model',
+    title: 'IBM enterprise support',
+    lead: 'IBM\'s enterprise support model assigns a named Customer Success Engineer (CSE) to your account — a technical advisor who understands your architecture, monitors your environment, and escalates internally on your behalf.',
+    sections: [
+      {
+        heading: 'Support coverage',
+        color: 'teal',
+        items: [
+          'Severity 1: 1-hour response SLA, 24×7 coverage',
+          'Severity 2: 4-hour response SLA, business hours + extended',
+          'Named CSE: single point of contact with deep product knowledge',
+          'Proactive health checks: quarterly architecture reviews',
+          'IBM Garage co-creation: IBM architects embedded in your delivery team',
+        ]
+      },
+      {
+        heading: 'Product access benefits',
+        color: 'teal',
+        items: [
+          'Roadmap previews: see what\'s coming in Presto, Spark, and Iceberg 6 months ahead',
+          'Early access programs for new connectors and engine features',
+          'Direct line to watsonx.data product management for feature requests',
+          'Access to IBM Expert Labs for deep-dive engagements',
+        ]
+      }
+    ],
+    note: { color: 'teal', text: 'For DataStax customers: IBM\'s CSE model means the same person who helps you design your Presto connector also helps you debug a Spark compaction job at 2am — unlike community-only DSS support models.' }
+  },
+
+  'sql-fed': {
+    pill: 'blue', pillText: 'Presto integration',
+    title: 'SQL federation across DSE, Iceberg, and S3',
+    lead: 'Presto\'s Cassandra connector enables direct SQL queries over live DSE data without any ETL. More importantly, it allows JOIN operations across DSE tables, Iceberg tables on object storage, and raw S3/COS files — all in a single SQL statement.',
+    sections: [
+      {
+        heading: 'How it works',
+        color: 'blue',
+        items: [
+          'Presto Cassandra connector connects to DSE using the native CQL binary protocol',
+          'The DSE token ring is partitioned into splits — one per vnode range by default',
+          'Workers read splits in parallel across all Presto worker nodes',
+          'Results are aggregated by the Presto coordinator and returned to the client',
+          'Iceberg and Hive tables on COS are queried via the same Presto session simultaneously',
+        ]
+      },
+      {
+        heading: 'Example: cross-source JOIN',
+        color: 'blue',
+        items: [
+          'DSE stores real-time device telemetry (last 30 days)',
+          'Iceberg stores historical telemetry (1 year+) on COS',
+          'Presto JOINs both in one query for full trend analysis',
+          'No data movement — query pushes down to each source',
+        ]
+      }
+    ],
+    code: `SELECT d.device_id, d.reading, h.avg_reading
+FROM cassandra.prod.telemetry d
+JOIN iceberg.warehouse.telemetry_history h
+  ON d.device_id = h.device_id
+WHERE d.ts > current_timestamp - interval '1' day`,
+    note: { color: 'blue', text: 'Predicate pushdown applies to DSE partition key filters. Non-partition predicates are filtered post-scan in Presto. Design queries to include partition key WHERE clauses where possible for best performance.' }
+  },
+
+  olap: {
+    pill: 'blue', pillText: 'Presto integration',
+    title: 'Low-latency OLAP over live DSE data',
+    lead: 'Presto\'s massively parallel processing (MPP) architecture distributes DSE table scans across multiple worker nodes, reading different token ring segments simultaneously. This enables analytical aggregations that would be impossible to express efficiently in CQL.',
+    sections: [
+      {
+        heading: 'Execution mechanics',
+        color: 'blue',
+        items: [
+          'Coordinator parses SQL and builds a distributed query plan',
+          'DSE token ring is split into N ranges — one Presto split per vnode by default',
+          'Each Presto worker claims a subset of splits and reads from DSE nodes in parallel',
+          'GROUP BY, COUNT, SUM, AVG run in Presto worker memory — not pushed to DSE',
+          'Partial aggregates are merged at the coordinator and returned to client',
+        ]
+      },
+      {
+        heading: 'Performance characteristics',
+        color: 'blue',
+        items: [
+          'Interactive queries (COUNT, SUM on millions of rows): 1–10 seconds typical',
+          'Full-table scans on large DSE tables: scales linearly with Presto worker count',
+          'Partition key filters significantly reduce scan scope — always include them',
+          'Presto result caching can serve repeated analytical queries from memory',
+        ]
+      }
+    ],
+    note: { color: 'blue', text: 'Important caveat: Presto cannot push arbitrary aggregations into DSE. DSE\'s CQL protocol doesn\'t support server-side GROUP BY for analytical patterns. All aggregation runs in Presto — budget memory accordingly for large result sets.' }
+  },
+
+  'open-format': {
+    pill: 'blue', pillText: 'Presto integration',
+    title: 'Open table format support',
+    lead: 'Unlike proprietary warehouses, watsonx.data is format-agnostic. Presto can query Apache Iceberg, Apache Hudi, and Delta Lake tables on object storage alongside live DSE data — giving DSE users a path to tiered storage without format lock-in.',
+    sections: [
+      {
+        heading: 'Supported formats',
+        color: 'blue',
+        items: [
+          'Apache Iceberg (native, preferred) — ACID transactions, time travel, schema evolution',
+          'Apache Hudi — upsert-optimized, good for CDC-driven DSE replication',
+          'Delta Lake — read-compatible via Delta Sharing or direct Parquet access',
+          'Plain Parquet / ORC / CSV on S3/COS — queryable via Hive connector',
+        ]
+      },
+      {
+        heading: 'Why this matters for DSE users',
+        color: 'blue',
+        items: [
+          'Move aged DSE data to Iceberg on COS — 10–20× cheaper per GB than DSE storage',
+          'Presto JOINs hot DSE data with cold Iceberg data transparently',
+          'No vendor lock-in: if you leave IBM, your Iceberg files stay open and portable',
+          'Snowflake, Databricks, and Athena can also read your IBM-managed Iceberg tables',
+        ]
+      }
+    ],
+    note: { color: 'blue', text: 'IBM recommends Apache Iceberg as the default target format for DSE data offload. Puffin statistics files are generated automatically by Spark compaction jobs, improving Presto scan planning on large tables.' }
+  },
+
+  'mixed-engine': {
+    pill: 'blue', pillText: 'Presto integration',
+    title: 'Mixed-engine concurrent queries',
+    lead: 'watsonx.data lets Presto and Spark run simultaneously against the same Iceberg tables and DSE data, with IBM Metastore Service (MDS) acting as the shared catalog authority. Engine isolation prevents one workload from starving the other.',
+    sections: [
+      {
+        heading: 'Concurrency model',
+        color: 'blue',
+        items: [
+          'Up to 2 Presto engine instances per watsonx.data deployment (soft limit)',
+          'Up to 3 Spark engine instances running concurrently',
+          'Each engine gets its own compute — no shared worker contention',
+          'MDS enforces Iceberg snapshot isolation: Spark writes don\'t block Presto reads',
+          'Separate engine sizing: scale Presto for latency, Spark for throughput independently',
+        ]
+      },
+      {
+        heading: 'Practical usage pattern',
+        color: 'blue',
+        items: [
+          'Presto: dashboards, ad-hoc SQL, operational reporting — runs continuously',
+          'Spark: nightly Iceberg compaction, ML feature pipelines, DSE ETL — runs on schedule',
+          'Both can query the same Iceberg table simultaneously without corruption',
+          'Presto auto-refreshes metadata from MDS — picks up Spark-written Iceberg snapshots instantly',
+        ]
+      }
+    ],
+    note: { color: 'blue', text: 'Swarm agentic patterns (many Presto agents querying simultaneously) can saturate concurrency limits. For AI agent topologies, prefer a single orchestrator querying Presto rather than N agents each opening independent connections.' }
+  },
+
+  etl: {
+    pill: 'teal', pillText: 'Spark + Iceberg',
+    title: 'ETL pipelines: DSE to Iceberg',
+    lead: 'The DataStax Spark-Cassandra Connector provides a first-class bridge between DSE and Apache Spark. In watsonx.data, Spark jobs read directly from DSE and write to Iceberg tables on IBM COS — enabling long-term retention and analytical access without changing your DSE schema.',
+    sections: [
+      {
+        heading: 'Pipeline pattern',
+        color: 'teal',
+        items: [
+          'Spark reads DSE table using spark.read.format("org.apache.spark.sql.cassandra")',
+          'Optional: filter by token range or timestamp for incremental loads',
+          'Apply Spark transformations: type coercion, partition pruning, deduplication',
+          'Write to Iceberg on COS with partition layout optimized for Presto scan',
+          'MDS registers the new Iceberg snapshot — immediately queryable by Presto',
+        ]
+      },
+      {
+        heading: 'Incremental vs. full load strategies',
+        color: 'teal',
+        items: [
+          'Full load: suitable for one-time historical migration or weekly snapshots',
+          'Incremental by writetime: filter DSE rows by WRITETIME() for changed records',
+          'CDC via Kafka: DSE Change Data Capture → Kafka → Spark Structured Streaming → Iceberg',
+          'Debezium + Kafka Connect: captures DSE mutations as Kafka events for near-real-time sync',
+        ]
+      }
+    ],
+    code: `spark.read
+  .format("org.apache.spark.sql.cassandra")
+  .options(Map("keyspace" -> "prod", "table" -> "events"))
+  .load()
+  .writeTo("iceberg.warehouse.events_history")
+  .using("iceberg")
+  .append()`,
+    note: { color: 'teal', text: 'For large DSE tables, partition the Spark read by token range using spark.cassandra.input.split.sizeInMB to control Spark task granularity. Default is 512MB per split — lower this for wide rows.' }
+  },
+
+  ml: {
+    pill: 'teal', pillText: 'Spark + Iceberg',
+    title: 'ML + AI workloads',
+    lead: 'DSE is a rich source of behavioral and operational features — user events, device readings, transaction history. watsonx.data\'s Spark engine unlocks these for ML by providing scalable feature engineering pipelines that connect directly to IBM watsonx.ai for model training.',
+    sections: [
+      {
+        heading: 'ML pipeline on watsonx.data',
+        color: 'teal',
+        items: [
+          'Spark reads DSE operational data (user profiles, events, telemetry)',
+          'Feature engineering: windowed aggregations, lag features, normalization in Spark',
+          'Write feature vectors to Iceberg feature store table on COS',
+          'Presto or Spark reads features for batch scoring or training data prep',
+          'Connect to watsonx.ai SaaS for model training (Granite, AutoAI, custom)',
+        ]
+      },
+      {
+        heading: 'LLM and semantic search patterns',
+        color: 'teal',
+        items: [
+          'Granite embeddings over DSE text fields stored in Iceberg vector table',
+          'Presto can query embedding metadata; vector search via OpenSearch or Milvus',
+          'watsonx.ai Granite models available for summarization, classification, generation',
+          'RAG pattern: retrieve from DSE → embed → pass to Granite for generation',
+        ]
+      }
+    ],
+    note: { color: 'teal', text: 'IBM Granite models on watsonx.ai are available for DSE customers via the same IBM Cloud account — no separate contract needed if on an IBM Cloud Pak for Data or watsonx.data enterprise agreement.' }
+  },
+
+  compaction: {
+    pill: 'teal', pillText: 'Spark + Iceberg',
+    title: 'Iceberg compaction via Spark',
+    lead: 'When DSE data is written incrementally to Iceberg (via CDC or micro-batch ETL), it accumulates many small Parquet files. This "small file problem" degrades Presto scan performance significantly. Spark-driven Iceberg compaction merges small files into optimally-sized chunks.',
+    sections: [
+      {
+        heading: 'Why compaction matters',
+        color: 'teal',
+        items: [
+          'Each Parquet file = one Presto split with open/close overhead',
+          '10,000 × 10MB files performs worse than 100 × 1GB files for full scans',
+          'Iceberg manifest files grow large, slowing query planning',
+          'Compaction merges files AND rewrites manifests — both improve query start time',
+        ]
+      },
+      {
+        heading: 'Compaction strategy',
+        color: 'teal',
+        items: [
+          'IBM watsonx.data can schedule Spark compaction jobs automatically',
+          'Target file size: 512MB–1GB for Presto OLAP workloads',
+          'Sort-order compaction: reorder rows by query filter columns (e.g., device_id, ts)',
+          'Z-ordering on two dimensions improves selectivity for range queries',
+          'Run compaction during off-peak hours to avoid competing with Presto queries',
+        ]
+      }
+    ],
+    code: `CALL iceberg.system.rewrite_data_files(
+  table => 'warehouse.events_history',
+  strategy => 'sort',
+  sort_order => 'zorder(device_id, event_ts)',
+  options => map('target-file-size-bytes', '536870912')
+)`,
+    note: { color: 'teal', text: 'After compaction, run CALL iceberg.system.rewrite_manifests() to consolidate the manifest tree. This is especially important for tables with high CDC ingestion rates where manifest fan-out grows quickly.' }
+  },
+
+  streaming: {
+    pill: 'teal', pillText: 'Spark + Iceberg',
+    title: 'Streaming ingest from DSE',
+    lead: 'DSE Change Data Capture (CDC) emits mutations as Kafka events. Spark Structured Streaming consumes these events and writes to Iceberg tables with near-real-time latency — giving Presto access to DSE data within seconds of it being written operationally.',
+    sections: [
+      {
+        heading: 'CDC → Kafka → Iceberg pipeline',
+        color: 'teal',
+        items: [
+          'Enable DSE CDC on target tables (per-table, minimal write overhead)',
+          'Debezium CDC connector publishes DSE mutations to Kafka topics',
+          'Spark Structured Streaming reads Kafka topic as a continuous stream',
+          'Deserialize Avro/JSON events, apply schema mapping',
+          'Write to Iceberg using foreachBatch with MERGE INTO for upserts',
+        ]
+      },
+      {
+        heading: 'Delivery guarantees',
+        color: 'teal',
+        items: [
+          'Exactly-once delivery via Kafka offset tracking + Iceberg ACID commits',
+          'Spark checkpoints stored on COS — pipeline restarts from last committed offset',
+          'Iceberg snapshot isolation: Presto reads last committed snapshot, never partial writes',
+          'IBM manages Spark executor reliability and restarts on watsonx.data SaaS',
+        ]
+      }
+    ],
+    note: { color: 'teal', text: 'DSE CDC has a known limitation: it only captures DML (INSERT/UPDATE/DELETE), not schema changes (DDL). If your DSE schema evolves, handle Iceberg schema evolution separately via ALTER TABLE or schema registry.' }
+  },
+
+  iam: {
+    pill: 'purple', pillText: 'Enterprise security',
+    title: 'IAM integration: IBM Cloud IAM + RBAC',
+    lead: 'Every request to watsonx.data — whether from a Presto SQL client, a Spark job, or the API — is authenticated and authorized via IBM Cloud Identity and Access Management (IAM). This gives your security team a single policy plane across all data access patterns.',
+    sections: [
+      {
+        heading: 'Authentication mechanisms',
+        color: 'purple',
+        items: [
+          'IBM Cloud IAM API keys for programmatic access (Presto JDBC, Spark jobs)',
+          'IBM Cloud IAM Bearer tokens (short-lived, OAuth 2.0) for interactive sessions',
+          'Service IDs for non-human workloads (ETL jobs, dashboards, agents)',
+          'Enterprise SSO via SAML 2.0 / OIDC federation — connect to your existing IdP',
+          'Trusted Profile support for IBM Cloud workloads without embedding API keys',
+        ]
+      },
+      {
+        heading: 'Authorization model',
+        color: 'purple',
+        items: [
+          'Catalog-level access: who can see which data sources',
+          'Schema-level access: read/write grants per schema',
+          'Table-level access: SELECT, INSERT, DELETE grants per table',
+          'All policies enforced by IBM Metastore Service — consistent across Presto and Spark',
+          'Attribute-based access control (ABAC) policies for dynamic, context-aware rules',
+        ]
+      }
+    ],
+    note: { color: 'purple', text: 'DSE-specific: IAM governs access to the watsonx.data Cassandra catalog. DSE itself still uses its own auth (internal or LDAP). IBM does not replace DSE auth — it adds a governance layer on top of queries routed through Presto.' }
+  },
+
+  'col-access': {
+    pill: 'purple', pillText: 'Enterprise security',
+    title: 'Column-level access and data masking',
+    lead: 'IBM\'s Data Access Service (DAS) enables fine-grained data governance at the column and row level. PII, financial data, and sensitive fields can be masked dynamically based on the querying user\'s role — without modifying the underlying DSE or Iceberg data.',
+    sections: [
+      {
+        heading: 'Column masking policies',
+        color: 'purple',
+        items: [
+          'MASK: replace column value with NULL, hash, or static substitute',
+          'MASK_HASH: SHA-256 hash of the value — preserves JOINability without exposing data',
+          'MASK_PARTIAL: show first N / last N characters (e.g., credit card last 4)',
+          'MASK_DATE_YEAR: reduce date to year only for aggregation without PII exposure',
+          'Policies applied at query time — Presto and Spark both enforce DAS policies',
+        ]
+      },
+      {
+        heading: 'Row-level filtering',
+        color: 'purple',
+        items: [
+          'Inject WHERE clause predicates based on caller\'s IAM attributes',
+          'Example: sales reps only see rows where region = their assigned region',
+          'Filters are transparent — users see a filtered table, not an error',
+          'Works for both Presto SQL queries and Spark DataFrame reads',
+          'Policies are centrally managed — no application code changes required',
+        ]
+      }
+    ],
+    note: { color: 'purple', text: 'Column masking applies to Iceberg and Hive tables managed by MDS. It does not apply to DSE tables accessed via the Cassandra connector — for DSE, access control happens at the catalog/schema/table level via IAM grants only.' }
+  },
+
+  audit: {
+    pill: 'purple', pillText: 'Enterprise security',
+    title: 'Audit logging and compliance',
+    lead: 'Every query executed by Presto and every Spark job submission is logged to IBM Cloud Log Analysis with an immutable audit trail. This covers who queried what data, when, from which IP, and what results were returned — the full chain required for SOC2, HIPAA, and FedRAMP compliance.',
+    sections: [
+      {
+        heading: 'What gets logged',
+        color: 'purple',
+        items: [
+          'Query text, user identity, timestamp, source IP for every Presto SQL statement',
+          'Spark job metadata: submitter, dataset read/written, execution duration',
+          'IAM policy evaluation events: what rules triggered and what was allowed/denied',
+          'Data Access Service decisions: which masking policies were applied per query',
+          'Control plane events: catalog changes, engine restarts, user provisioning',
+        ]
+      },
+      {
+        heading: 'Compliance certifications',
+        color: 'purple',
+        items: [
+          'SOC 2 Type II: annual third-party audit, report available under NDA',
+          'HIPAA Business Associate Agreement (BAA): available for healthcare data',
+          'FedRAMP Moderate: IBM Cloud Government regions (US-East, US-South)',
+          'ISO 27001 / 27017 / 27018: information security + cloud privacy controls',
+          'PCI DSS Level 1: for payment card workloads on IBM Cloud',
+        ]
+      }
+    ],
+    note: { color: 'purple', text: 'IBM can generate a compliance evidence package for your audit cycles, including log exports, access policy documentation, and penetration test results. Your CSE coordinates this — raise a request 60 days before your audit window.' }
+  },
+
+  encryption: {
+    pill: 'purple', pillText: 'Enterprise security',
+    title: 'Encryption at rest: BYOK and Key Protect',
+    lead: 'All data stored in IBM Cloud Object Storage (Iceberg files, Parquet, manifests) is encrypted at rest using AES-256. IBM offers three tiers of key management — from IBM-managed keys to fully customer-controlled keys where IBM never sees the plaintext key material.',
+    sections: [
+      {
+        heading: 'Key management tiers',
+        color: 'purple',
+        items: [
+          'IBM-managed keys: default, zero operational burden, IBM controls key lifecycle',
+          'BYOK via IBM Key Protect: you own the root key, IBM Key Protect wraps/unwraps data keys',
+          'KYOK via IBM Hyper Protect Crypto Services (HPCS): IBM cannot access your key — hardware-enforced isolation',
+          'Key rotation: rotate root keys without re-encrypting data (envelope encryption)',
+          'Key deletion: revoke access to all data by deleting the root key (crypto-shredding)',
+        ]
+      },
+      {
+        heading: 'Encryption in transit',
+        color: 'purple',
+        items: [
+          'TLS 1.3 enforced on all Presto JDBC/HTTPS connections',
+          'mTLS available for Spark-to-COS and Presto-to-COS communication',
+          'Private endpoints (IBM Cloud Service Endpoints) keep traffic off the public internet',
+          'VPC peering available for on-premises DSE clusters connecting to IBM Cloud',
+        ]
+      }
+    ],
+    note: { color: 'purple', text: 'KYOK (Keep Your Own Key) via HPCS uses FIPS 140-2 Level 4 HSMs — the highest certification available commercially. This is the configuration used by regulated financial institutions (banks, insurers) deploying on IBM Cloud.' }
+  },
+
+  enterprise: {
+    pill: 'gray', pillText: 'Support + services',
+    title: 'IBM enterprise support and co-creation',
+    lead: 'IBM\'s enterprise engagement model goes beyond ticket resolution. Through IBM Garage, named CSE coverage, and product roadmap access, DSE customers get an embedded IBM team that treats your outcomes as their success criteria.',
+    sections: [
+      {
+        heading: 'IBM Garage co-creation',
+        color: 'gray',
+        items: [
+          'IBM architects and engineers embedded in your team for 2–12 week sprints',
+          'Architecture design authority for watsonx.data + DSE integration patterns',
+          'Agile delivery: IBM co-builds the first production pipeline alongside your engineers',
+          'Knowledge transfer: your team owns the solution after the sprint; IBM leaves runbooks',
+          'Available as a funded engagement or included in IBM Cloud enterprise agreements',
+        ]
+      },
+      {
+        heading: 'Ongoing CSE coverage',
+        color: 'gray',
+        items: [
+          'Quarterly architecture reviews: benchmark performance, review cost optimization',
+          'Proactive monitoring alerts: IBM flags anomalies before they become incidents',
+          'Upgrade planning: CSE coordinates watsonx.data version upgrades with your change window',
+          'SLA credits for unplanned downtime against your contract — automatic, no claim required',
+          'Early access: CSE nominates your account for beta features aligned to your roadmap',
+        ]
+      }
+    ],
+    note: { color: 'gray', text: 'For DSE customers transitioning from DataStax Enterprise support contracts: IBM can time watsonx.data onboarding to overlap with your DSE renewal window, providing a transition plan that avoids a gap in enterprise-grade support.' }
+  }
+};
+
+const overlay  = document.getElementById('overlay');
+const modalEl  = document.getElementById('modal');
+const pillEl   = document.getElementById('modal-pill');
+const titleEl  = document.getElementById('modal-title');
+const bodyEl   = document.getElementById('modal-body');
+const closeBtn = document.getElementById('modal-close');
+
+function openModal(id) {
+  const data = modals[id];
+  if (!data) return;
+
+  pillEl.textContent = data.pillText;
+  pillEl.className = 'modal-pill ' + data.pill;
+  titleEl.textContent = data.title;
+
+  let html = `<p class="modal-lead">${data.lead}</p>`;
+
+  (data.sections || []).forEach(sec => {
+    html += `<div class="modal-section-title">${sec.heading}</div>`;
+    html += `<ul class="modal-list ${sec.color}">`;
+    sec.items.forEach(item => { html += `<li>${item}</li>`; });
+    html += `</ul>`;
+  });
+
+  if (data.code) {
+    html += `<div class="modal-code">${data.code.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
+  }
+
+  if (data.note) {
+    html += `<div class="modal-note ${data.note.color}">${data.note.text}</div>`;
+  }
+
+  bodyEl.innerHTML = html;
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.querySelectorAll('[data-modal]').forEach(el => {
+  el.addEventListener('click', () => openModal(el.dataset.modal));
+});
+
+closeBtn.addEventListener('click', closeModal);
+overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>
