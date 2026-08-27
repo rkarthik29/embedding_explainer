@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IBM watsonx.ai GPU Hosting Calculator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #1f2328;
+    background: #f4f4f4;
+    padding: 24px 16px 60px;
+  }
+  .container { max-width: 820px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    background: #0f62fe;
+    color: #fff;
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  .header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
+  .header p { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+  .ibm-badge {
+    display: inline-block; background: rgba(255,255,255,0.2);
+    font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 3px;
+    letter-spacing: 0.4px; margin-bottom: 8px; color: #fff;
+  }
+
+  /* Cards */
+  .card {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .card h2 {
+    font-size: 14px; font-weight: 700; color: #1f2328;
+    border-left: 3px solid #0f62fe; padding-left: 10px;
+    margin-bottom: 14px;
+  }
+
+  /* Step indicators */
+  .steps { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .step {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 600; color: #6f6f6f;
+    background: #e0e0e0; border-radius: 20px; padding: 4px 12px;
+  }
+  .step.active { background: #0f62fe; color: #fff; }
+  .step.done { background: #24a148; color: #fff; }
+  .step-num {
+    width: 18px; height: 18px; border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; flex-shrink: 0;
+  }
+
+  /* Form elements */
+  label { display: block; font-size: 12px; font-weight: 600; color: #525252; margin-bottom: 5px; }
+  select, input[type="text"], input[type="number"] {
+    width: 100%; padding: 9px 12px; border: 1px solid #c6c6c6; border-radius: 4px;
+    font-size: 13px; color: #1f2328; background: #fff; appearance: none;
+    font-family: inherit;
+  }
+  select:focus, input:focus { outline: 2px solid #0f62fe; outline-offset: 1px; border-color: #0f62fe; }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23525252' d='M6 8L0 0h12z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 560px) { .form-row { grid-template-columns: 1fr; } }
+  .form-group { margin-bottom: 14px; }
+
+  /* GPU recommendation banner */
+  .gpu-rec {
+    background: #defbe6;
+    border: 1px solid #24a148;
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .gpu-rec.visible { display: block; }
+  .gpu-rec-title { font-size: 12px; font-weight: 700; color: #0e6027; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px; }
+  .gpu-rec-main { font-size: 15px; font-weight: 700; color: #0e6027; }
+  .gpu-rec-sub { font-size: 12px; color: #198038; margin-top: 2px; }
+
+  /* GPU alternatives */
+  .alt-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 4px; }
+  @media (max-width: 600px) { .alt-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 400px) { .alt-grid { grid-template-columns: 1fr; } }
+
+  .alt-card {
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    background: #fff;
+  }
+  .alt-card:hover { border-color: #0f62fe; background: #eff4ff; }
+  .alt-card.selected { border-color: #0f62fe; background: #eff4ff; }
+  .alt-card.recommended { border-color: #24a148; }
+  .alt-card.recommended.selected { border-color: #0f62fe; background: #eff4ff; }
+
+  .alt-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.4px; margin-bottom: 4px;
+  }
+  .alt-label.rec { color: #24a148; }
+  .alt-label.alt { color: #525252; }
+  .alt-label.large { color: #8a3ffc; }
+  .alt-label.private { color: #b28600; }
+
+  .alt-name { font-size: 12px; font-weight: 700; color: #1f2328; line-height: 1.3; }
+  .alt-gpu { font-size: 11px; color: #525252; margin-top: 2px; }
+  .alt-price { font-size: 12px; font-weight: 700; color: #0f62fe; margin-top: 6px; }
+  .alt-tier { font-size: 10px; color: #6f6f6f; margin-top: 1px; }
+
+  /* Pricing config */
+  .price-mode-tabs { display: flex; gap: 0; margin-bottom: 14px; border: 1px solid #e0e0e0; border-radius: 4px; overflow: hidden; }
+  .price-mode-tab {
+    flex: 1; padding: 8px; text-align: center; font-size: 12px; font-weight: 600;
+    color: #525252; background: #f4f4f4; cursor: pointer; border: none;
+    font-family: inherit; transition: background 0.12s, color 0.12s;
+  }
+  .price-mode-tab.active { background: #0f62fe; color: #fff; }
+
+  /* Results */
+  .result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+  @media (max-width: 560px) { .result-grid { grid-template-columns: 1fr 1fr; } }
+
+  .result-box {
+    background: #f4f4f4;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    padding: 12px 14px;
+  }
+  .result-box.highlight { background: #eff4ff; border-color: #0f62fe; }
+  .result-label { font-size: 11px; font-weight: 600; color: #6f6f6f; text-transform: uppercase; letter-spacing: 0.4px; }
+  .result-value { font-size: 20px; font-weight: 700; color: #0f62fe; margin-top: 2px; }
+  .result-sub { font-size: 11px; color: #6f6f6f; margin-top: 1px; }
+
+  /* Breakdown table */
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+  th { background: #f4f4f4; border: 1px solid #e0e0e0; padding: 7px 10px; text-align: left; font-weight: 600; color: #6f6f6f; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.4px; }
+  td { border: 1px solid #e0e0e0; padding: 7px 10px; }
+  tr.total td { font-weight: 700; background: #eff4ff; color: #0f62fe; }
+
+  /* Callouts */
+  .callout { background: #eff4ff; border: 1px solid #bfdbfe; border-radius: 4px; padding: 10px 14px; font-size: 12px; color: #1e3a8a; margin-top: 12px; }
+  .warn-callout { background: #fef3c7; border: 1px solid #fde68a; border-radius: 4px; padding: 10px 14px; font-size: 12px; color: #78350f; margin-top: 12px; }
+
+  /* Hidden */
+  .hidden { display: none !important; }
+
+  /* Button */
+  .btn {
+    display: inline-block; background: #0f62fe; color: #fff;
+    border: none; border-radius: 4px; padding: 10px 20px;
+    font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+    transition: background 0.12s;
+  }
+  .btn:hover { background: #0353e9; }
+  .btn-outline {
+    background: transparent; color: #0f62fe; border: 1px solid #0f62fe;
+    border-radius: 4px; padding: 7px 14px; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: background 0.12s;
+  }
+  .btn-outline:hover { background: #eff4ff; }
+
+  /* Range slider */
+  input[type="range"] { width: 100%; accent-color: #0f62fe; }
+  .range-labels { display: flex; justify-content: space-between; font-size: 11px; color: #6f6f6f; margin-top: 2px; }
+
+  /* Separator */
+  hr { border: none; border-top: 1px solid #e0e0e0; margin: 16px 0; }
+
+  .chip {
+    display: inline-block; font-size: 10px; font-weight: 700;
+    padding: 2px 6px; border-radius: 3px; margin-left: 4px;
+    vertical-align: middle;
+  }
+  .chip-green { background: #defbe6; color: #0e6027; }
+  .chip-blue { background: #dde1ff; color: #2d3282; }
+  .chip-yellow { background: #fef3c7; color: #78350f; }
+
+  /* Section hidden until model selected */
+  .requires-model { opacity: 0.4; pointer-events: none; transition: opacity 0.2s; }
+  .requires-model.unlocked { opacity: 1; pointer-events: auto; }
+
+  /* notes */
+  .note { font-size: 11px; color: #6f6f6f; font-style: italic; margin-top: 4px; }
+
+  /* footer */
+  .footer { text-align: center; font-size: 12px; color: #6f6f6f; margin-top: 32px; padding-top: 14px; border-top: 1px solid #e0e0e0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="ibm-badge">IBM Cloud</div>
+    <h1>watsonx.ai GPU Hosting Calculator</h1>
+    <p>Select a model to get a GPU recommendation, choose your preferred instance, then calculate monthly hosting costs.</p>
+  </div>
+
+  <!-- Steps -->
+  <div class="steps">
+    <div class="step active" id="step1"><div class="step-num">1</div> Select Model</div>
+    <div class="step" id="step2"><div class="step-num">2</div> Choose GPU</div>
+    <div class="step" id="step3"><div class="step-num">3</div> Configure &amp; Price</div>
+    <div class="step" id="step4"><div class="step-num">4</div> Cost Summary</div>
+  </div>
+
+  <!-- Step 1: Model Selection -->
+  <div class="card" id="card-model">
+    <h2>Step 1 — Select a Model</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="model-category">Model Family</label>
+        <select id="model-category" onchange="filterModels()">
+          <option value="">All families</option>
+            <option value="granite">IBM Granite</option>
+            <option value="llama">Meta Llama</option>
+            <option value="mistral">Mistral / Mixtral</option>
+            <option value="deepseek">DeepSeek</option>
+            <option value="qwen">Qwen (Alibaba)</option>
+            <option value="gemma">Google Gemma</option>
+            <option value="phi">Microsoft Phi</option>
+            <option value="command">Cohere Command</option>
+            <option value="falcon">TII Falcon</option>
+            <option value="yi">01.AI Yi</option>
+            <option value="solar">Upstage SOLAR</option>
+            <option value="nemotron">NVIDIA Nemotron</option>
+            <option value="glm">Zhipu GLM</option>
+            <option value="kimi">Moonshot Kimi</option>
+            <option value="custom">Custom / BYOM</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="model-select">Model</label>
+        <select id="model-select" onchange="onModelSelect()">
+          <option value="">— choose a model —</option>
+        </select>
+      </div>
+    </div>
+    <div id="model-info" class="hidden">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:4px;">
+        <div class="result-box"><div class="result-label">Parameters</div><div id="mi-params" class="result-value" style="font-size:15px"></div></div>
+        <div class="result-box"><div class="result-label">Min VRAM</div><div id="mi-vram" class="result-value" style="font-size:15px"></div></div>
+        <div class="result-box"><div class="result-label">Precision</div><div id="mi-precision" class="result-value" style="font-size:15px"></div></div>
+        <div class="result-box"><div class="result-label">Deployment</div><div id="mi-deploy" class="result-value" style="font-size:15px"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: GPU Selection -->
+  <div class="card requires-model" id="card-gpu">
+    <h2>Step 2 — GPU Recommendation &amp; Alternatives</h2>
+
+    <div class="gpu-rec" id="gpu-rec-banner">
+      <div class="gpu-rec-title">✓ Recommended GPU for this model</div>
+      <div class="gpu-rec-main" id="rec-main"></div>
+      <div class="gpu-rec-sub" id="rec-sub"></div>
+    </div>
+
+    <p style="font-size:12px;color:#525252;margin-bottom:10px;">Select your preferred GPU instance. Click a card to use it in the cost calculation.</p>
+
+    <div class="alt-grid" id="gpu-options-grid">
+      <!-- populated by JS -->
+    </div>
+
+    <div id="selected-gpu-summary" class="callout hidden" style="margin-top:12px;">
+      Selected: <strong id="sel-gpu-name"></strong> — <span id="sel-gpu-details"></span>
+    </div>
+  </div>
+
+  <!-- Step 3: Configuration & Pricing -->
+  <div class="card requires-model" id="card-config">
+    <h2>Step 3 — Configure &amp; Pricing</h2>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="hosting-type">Hosting Tier</label>
+        <select id="hosting-type" onchange="onHostingTypeChange()">
+          <option value="shared">Shared Inference (per token)</option>
+          <option value="dod">Deploy on Demand (dedicated GPU, hourly)</option>
+          <option value="byom">BYOM — Bring Your Own Model (hourly)</option>
+          <option value="private">Private / Dedicated (custom quote)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="utilization">Node Utilization</label>
+        <input type="range" id="utilization" min="1" max="24" value="24" step="1" oninput="onUtilChange(this.value)">
+        <div class="range-labels"><span>1 hr/day</span><span id="util-label">24 hrs/day (always-on)</span><span>24 hr/day</span></div>
+      </div>
+    </div>
+
+    <!-- Shared pricing config -->
+    <div id="shared-config">
+      <hr>
+      <p style="font-size:12px;font-weight:600;color:#525252;margin-bottom:10px;">Shared Inference — Token Volume</p>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="token-class">Token Pricing Class</label>
+          <select id="token-class" onchange="calculate()">
+            <option value="0.35">Class 1 — $0.35/1M tokens (small models, e.g. Granite 3B–8B)</option>
+            <option value="0.60">Class 2 — $0.60/1M tokens (mid-size, e.g. Granite 13B, Llama 13B)</option>
+            <option value="1.20" selected>Class 3 — $1.20/1M tokens (large instruct, e.g. Llama 70B)</option>
+            <option value="5.00">Class 4 — $5.00/1M tokens (very large, e.g. Llama 405B)</option>
+            <option value="10.00">Class 5 — $10.00/1M tokens (multimodal / specialty)</option>
+            <option value="custom">Custom rate…</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="tokens-monthly">Monthly Token Volume (millions)</label>
+          <input type="number" id="tokens-monthly" value="500" min="1" step="10" oninput="calculate()">
+          <p class="note">Input tokens. Output tokens billed at 2× input rate.</p>
+        </div>
+      </div>
+      <div class="form-group" id="custom-token-group" style="display:none;">
+        <label for="custom-token-rate">Custom Input Token Rate ($ per 1M tokens)</label>
+        <input type="number" id="custom-token-rate" value="1.20" min="0.001" step="0.01" oninput="calculate()">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="output-ratio">Avg Output/Input Token Ratio</label>
+          <input type="number" id="output-ratio" value="1.5" min="0.1" max="10" step="0.1" oninput="calculate()">
+        </div>
+        <div class="form-group">
+          <label for="prompt-tuning-hours">Prompt Tuning (hours/month, 0 if none)</label>
+          <input type="number" id="prompt-tuning-hours" value="0" min="0" step="1" oninput="calculate()">
+        </div>
+      </div>
+    </div>
+
+    <!-- Node-hour pricing config (DoD + BYOM) -->
+    <div id="node-config" class="hidden">
+      <hr>
+      <p style="font-size:12px;font-weight:600;color:#525252;margin-bottom:10px;">Node-Hour Pricing</p>
+      <div class="price-mode-tabs">
+        <button class="price-mode-tab active" id="tab-catalog" onclick="setPriceMode('catalog')">Use IBM Cloud Catalog Price</button>
+        <button class="price-mode-tab" id="tab-custom" onclick="setPriceMode('custom')">Enter Custom / Negotiated Rate</button>
+        <button class="price-mode-tab" id="tab-reserved" onclick="setPriceMode('reserved')">Reserved (1-yr, ~35% off)</button>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Catalog On-Demand Rate</label>
+          <input type="number" id="catalog-rate" readonly style="background:#f4f4f4;color:#6f6f6f;" value="3.29">
+          <p class="note">Auto-populated from IBM Cloud catalog for selected GPU.</p>
+        </div>
+        <div class="form-group" id="custom-rate-group" style="display:none;">
+          <label for="custom-node-rate">Your Hourly Rate ($/hr)</label>
+          <input type="number" id="custom-node-rate" value="3.29" min="0.01" step="0.01" oninput="calculate()">
+        </div>
+        <div class="form-group" id="reserved-rate-group" style="display:none;">
+          <label>1-Year Reserved Rate (~35% off)</label>
+          <input type="number" id="reserved-rate" readonly style="background:#f4f4f4;color:#6f6f6f;" value="2.14">
+          <p class="note">Estimated. Confirm with IBM Cloud reservations.</p>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="node-count">Number of Nodes</label>
+          <input type="number" id="node-count" value="1" min="1" max="16" step="1" oninput="calculate()">
+        </div>
+        <div class="form-group" id="byom-platform-group" style="display:none;">
+          <label for="byom-platform-fee">watsonx.ai Platform Fee ($/month)</label>
+          <input type="number" id="byom-platform-fee" value="1000" min="0" step="100" oninput="calculate()">
+          <p class="note">Enterprise plan base fee. Check your contract.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Private quote notice -->
+    <div id="private-config" class="hidden">
+      <hr>
+      <div class="warn-callout">
+        Private / Dedicated deployments are custom-quoted by IBM Sales based on cluster size, geography, SLA requirements, and contract term.
+        Use this calculator to estimate relative GPU node cost, but final pricing requires an IBM sales engagement.
+      </div>
+      <div class="form-row" style="margin-top:14px;">
+        <div class="form-group">
+          <label for="private-node-rate">Estimated Node Rate ($/hr) — enter or leave as estimate</label>
+          <input type="number" id="private-node-rate" value="8.50" min="0.01" step="0.01" oninput="calculate()">
+          <p class="note">H100 BM ~$18–22/hr · H200 BM ~$26–32/hr · B300 BM ~$35–45/hr (market estimates; IBM pricing via sales)</p>
+        </div>
+        <div class="form-group">
+          <label for="private-node-count">Number of Nodes</label>
+          <input type="number" id="private-node-count" value="1" min="1" max="32" step="1" oninput="calculate()">
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px;">
+      <button class="btn" onclick="calculate()">Calculate Cost</button>
+    </div>
+  </div>
+
+  <!-- Step 4: Results -->
+  <div class="card requires-model hidden" id="card-results">
+    <h2>Step 4 — Cost Summary</h2>
+
+    <div class="result-grid">
+      <div class="result-box highlight">
+        <div class="result-label">Monthly Cost</div>
+        <div class="result-value" id="r-monthly">—</div>
+        <div class="result-sub" id="r-monthly-sub"></div>
+      </div>
+      <div class="result-box">
+        <div class="result-label">Daily Cost</div>
+        <div class="result-value" id="r-daily" style="font-size:16px">—</div>
+        <div class="result-sub" id="r-daily-sub"></div>
+      </div>
+      <div class="result-box">
+        <div class="result-label">Annual (est.)</div>
+        <div class="result-value" id="r-annual" style="font-size:16px">—</div>
+        <div class="result-sub">12 × monthly</div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Line Item</th><th>Rate</th><th>Quantity</th><th>Monthly Cost</th></tr>
+      </thead>
+      <tbody id="breakdown-body"></tbody>
+      <tfoot>
+        <tr class="total"><td colspan="3">Total Monthly Estimate</td><td id="breakdown-total">—</td></tr>
+      </tfoot>
+    </table>
+
+    <div id="result-notes" class="callout" style="margin-top:12px;"></div>
+
+    <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn-outline" onclick="resetAll()">Start Over</button>
+      <button class="btn-outline" onclick="window.print()">Print / Save PDF</button>
+    </div>
+  </div>
+
+  <div class="footer">IBM watsonx.ai GPU Hosting Calculator · Based on IBM Cloud published pricing · Estimates only — verify with IBM Cloud Catalog</div>
+</div>
+
+<script>
+// =========================================================
+// DATA
+// =========================================================
+
+const MODELS = [
+  // ── IBM Granite ──────────────────────────────────────────────────────────
+  { id:"granite-3b",          name:"Granite 3.2B Instruct",          family:"granite",  params:"3.2B",   vramMin:"6 GB",    precision:"BF16/INT8", deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Easily fits on 1× L40S with room for large batches" },
+  { id:"granite-3b-vision",   name:"Granite 3.2B Vision",            family:"granite",  params:"3.2B",   vramMin:"8 GB",    precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Vision model adds image encoder overhead; fits on 1× L40S" },
+  { id:"granite-7b",          name:"Granite 7B Instruct",            family:"granite",  params:"7B",     vramMin:"14 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Fits comfortably on 1× L40S (48 GB VRAM)" },
+  { id:"granite-8b",          name:"Granite 3.1 8B Instruct",        family:"granite",  params:"8B",     vramMin:"16 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Latest Granite 3.1 small model; fits on 1× L40S easily" },
+  { id:"granite-13b",         name:"Granite 13B Instruct",           family:"granite",  params:"13B",    vramMin:"26 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:2, recGpu:"gx3-16x80x1l40s",  reason:"Fits on 1× L40S at BF16; use INT8 for larger batches" },
+  { id:"granite-20b",         name:"Granite Code 20B",               family:"granite",  params:"20B",    vramMin:"40 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:2, recGpu:"gx3-16x80x1l40s",  reason:"Fits on 1× L40S (48 GB) at BF16 — tight, INT8 recommended" },
+  { id:"granite-34b",         name:"Granite Code 34B",               family:"granite",  params:"34B",    vramMin:"68 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:3, recGpu:"gx3-48x240x2l40s", reason:"Requires 2× L40S (96 GB combined VRAM)" },
+  // ── Meta Llama ───────────────────────────────────────────────────────────
+  { id:"llama3-1b",           name:"Llama 3.2 1B Instruct",          family:"llama",    params:"1B",     vramMin:"3 GB",    precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Tiny model; 1× L40S can serve dozens of concurrent requests" },
+  { id:"llama3-3b",           name:"Llama 3.2 3B Instruct",          family:"llama",    params:"3B",     vramMin:"6 GB",    precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Small but capable; 1× L40S handles high concurrency" },
+  { id:"llama3-8b",           name:"Llama 3.1 8B Instruct",          family:"llama",    params:"8B",     vramMin:"16 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Fits on 1× L40S; excellent throughput" },
+  { id:"llama3-11b",          name:"Llama 3.2 11B Vision Instruct",  family:"llama",    params:"11B",    vramMin:"22 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:2, recGpu:"gx3-16x80x1l40s",  reason:"Vision model; 22 GB VRAM fits on 1× L40S with KV-cache room" },
+  { id:"llama3-70b",          name:"Llama 3.1 70B Instruct",         family:"llama",    params:"70B",    vramMin:"140 GB",  precision:"BF16",      deployTier:"dod",     tokenClass:3, recGpu:"gx3-96x480x4l40s", reason:"Requires 4× L40S (192 GB combined) for BF16; use INT4 on 2× L40S" },
+  { id:"llama3-70b-q4",       name:"Llama 3.1 70B (INT4 quant)",     family:"llama",    params:"70B",    vramMin:"40 GB",   precision:"INT4",      deployTier:"dod",     tokenClass:3, recGpu:"gx3-16x80x1l40s",  reason:"Quantized to INT4 (~40 GB), fits on 1× L40S. Minor quality trade-off." },
+  { id:"llama3-90b",          name:"Llama 3.2 90B Vision Instruct",  family:"llama",    params:"90B",    vramMin:"180 GB",  precision:"BF16",      deployTier:"byom",    tokenClass:3, recGpu:"gx3-96x480x4l40s", reason:"Large vision model; 4× L40S at INT8 or A100 Bare Metal for BF16" },
+  { id:"llama3-405b",         name:"Llama 3.1 405B Instruct",        family:"llama",    params:"405B",   vramMin:"810 GB",  precision:"BF16",      deployTier:"private", tokenClass:4, recGpu:"h200-bm",           reason:"810 GB BF16 footprint fits in a single 8× H200 node (1128 GB HBM3e); A100 multi-node also viable" },
+  { id:"llama3-405b-q4",      name:"Llama 3.1 405B (INT4 quant)",    family:"llama",    params:"405B",   vramMin:"210 GB",  precision:"INT4",      deployTier:"byom",    tokenClass:4, recGpu:"gx3-96x480x4l40s", reason:"INT4 quantized (~210 GB), fits on 4× L40S with tensor parallelism via vLLM" },
+  { id:"llama4-scout",        name:"Llama 4 Scout 17B×16E (MoE)",    family:"llama",    params:"~109B",  vramMin:"140 GB",  precision:"BF16",      deployTier:"dod",     tokenClass:3, recGpu:"gx3-96x480x4l40s", reason:"MoE with 17B active params; full weights need 4× L40S or A100 BM" },
+  { id:"llama4-maverick",     name:"Llama 4 Maverick 17B×128E (MoE)",family:"llama",    params:"~400B",  vramMin:"400 GB",  precision:"BF16",      deployTier:"private", tokenClass:4, recGpu:"h100-bm",           reason:"~400 GB MoE model; fits on a single 8× H100 (640 GB) or H200 node" },
+  // ── Mistral / Mixtral ────────────────────────────────────────────────────
+  { id:"mistral-7b",          name:"Mistral 7B Instruct v0.3",       family:"mistral",  params:"7B",     vramMin:"14 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Small model, fits on 1× L40S with high throughput" },
+  { id:"mistral-nemo",        name:"Mistral NeMo 12B Instruct",      family:"mistral",  params:"12B",    vramMin:"24 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:2, recGpu:"gx3-16x80x1l40s",  reason:"12B fits on 1× L40S; good balance of quality and cost" },
+  { id:"mistral-small",       name:"Mistral Small 3.1 24B Instruct", family:"mistral",  params:"24B",    vramMin:"48 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:2, recGpu:"gx3-16x80x1l40s",  reason:"Exactly 48 GB; fits tightly on 1× L40S — INT8 for comfort" },
+  { id:"mistral-medium-3",    name:"Mistral Medium 3 (123B)",        family:"mistral",  params:"123B",   vramMin:"246 GB",  precision:"BF16",      deployTier:"byom",    tokenClass:3, recGpu:"gx3-96x480x4l40s", reason:"4× L40S at INT4/INT8 quantization; A100 BM recommended for BF16" },
+  { id:"mixtral-8x7b",        name:"Mixtral 8×7B MoE",               family:"mistral",  params:"~47B",   vramMin:"90 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:3, recGpu:"gx3-48x240x2l40s", reason:"MoE model — active params ~13B but full weights ~90 GB, needs 2× L40S" },
+  { id:"mixtral-8x22b",       name:"Mixtral 8×22B MoE",              family:"mistral",  params:"~141B",  vramMin:"280 GB",  precision:"BF16",      deployTier:"byom",    tokenClass:3, recGpu:"gx3-96x480x4l40s", reason:"Large MoE — needs 4× L40S (192 GB) with INT4/INT8 quantization" },
+  // ── DeepSeek ─────────────────────────────────────────────────────────────
+  { id:"deepseek-r1-7b",      name:"DeepSeek-R1-Distill-Llama-8B",  family:"deepseek", params:"8B",     vramMin:"16 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Small distilled R1 reasoning model; fits on 1× L40S" },
+  { id:"deepseek-r1-14b",     name:"DeepSeek-R1-Distill-Qwen-14B",  family:"deepseek", params:"14B",    vramMin:"28 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:2, recGpu:"gx3-16x80x1l40s",  reason:"28 GB VRAM at BF16; fits on 1× L40S with reasonable batch size" },
+  { id:"deepseek-r1-32b",     name:"DeepSeek-R1-Distill-Qwen-32B",  family:"deepseek", params:"32B",    vramMin:"64 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:3, recGpu:"gx3-48x240x2l40s", reason:"64 GB BF16 needs 2× L40S; use INT8 on 1× L40S for light workloads" },
+  { id:"deepseek-r1-70b",     name:"DeepSeek-R1-Distill-Llama-70B", family:"deepseek", params:"70B",    vramMin:"140 GB",  precision:"BF16",      deployTier:"dod",     tokenClass:3, recGpu:"gx3-96x480x4l40s", reason:"Same footprint as Llama 70B; 4× L40S for BF16" },
+  { id:"deepseek-r1-671b",    name:"DeepSeek-R1 671B (MoE, Full)",  family:"deepseek", params:"671B",   vramMin:"700 GB",  precision:"BF16",      deployTier:"private", tokenClass:4, recGpu:"h200-bm",           reason:"Massive MoE — 1128 GB HBM3e on 8× H200 fits full BF16 weights in one node" },
+  { id:"deepseek-v3",         name:"DeepSeek-V3 671B (MoE, Full)",  family:"deepseek", params:"671B",   vramMin:"700 GB",  precision:"BF16",      deployTier:"private", tokenClass:4, recGpu:"h200-bm",           reason:"671B MoE flagship; 8× H200 (1128 GB) can host full BF16 model in a single node" },
+  { id:"deepseek-v3-int4",    name:"DeepSeek-V3 (INT4 quant, ~160B active)",family:"deepseek",params:"671B",vramMin:"180 GB",precision:"INT4",   deployTier:"byom",    tokenClass:4, recGpu:"gx3-96x480x4l40s", reason:"INT4 quantized active weights ~180 GB; 4× L40S viable with vLLM MoE offloading" },
+  { id:"deepseek-coder-v2",   name:"DeepSeek-Coder-V2-Lite-Instruct",family:"deepseek",params:"16B",    vramMin:"32 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:2, recGpu:"gx3-16x80x1l40s",  reason:"32 GB BF16 fits on 1× L40S; ideal for code generation workloads" },
+  // ── Qwen (Alibaba) ───────────────────────────────────────────────────────
+  { id:"qwen2-5-0b5",         name:"Qwen 2.5 0.5B Instruct",        family:"qwen",     params:"0.5B",   vramMin:"2 GB",    precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Tiny model; 1× L40S can serve hundreds of concurrent sessions" },
+  { id:"qwen2-5-7b",          name:"Qwen 2.5 7B Instruct",          family:"qwen",     params:"7B",     vramMin:"14 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Fits on 1× L40S; strong multilingual and code capabilities" },
+  { id:"qwen2-5-14b",         name:"Qwen 2.5 14B Instruct",         family:"qwen",     params:"14B",    vramMin:"28 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:2, recGpu:"gx3-16x80x1l40s",  reason:"28 GB fits on 1× L40S; very capable mid-size model" },
+  { id:"qwen2-5-32b",         name:"Qwen 2.5 32B Instruct",         family:"qwen",     params:"32B",    vramMin:"64 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:3, recGpu:"gx3-48x240x2l40s", reason:"2× L40S (96 GB) comfortable for BF16; use INT8 on 1× L40S" },
+  { id:"qwen2-5-72b",         name:"Qwen 2.5 72B Instruct",         family:"qwen",     params:"72B",    vramMin:"144 GB",  precision:"BF16",      deployTier:"dod",     tokenClass:3, recGpu:"gx3-96x480x4l40s", reason:"4× L40S for BF16; competitive with Llama 70B on many benchmarks" },
+  { id:"qwen2-5-coder-32b",   name:"Qwen 2.5-Coder 32B Instruct",  family:"qwen",     params:"32B",    vramMin:"64 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:3, recGpu:"gx3-48x240x2l40s", reason:"State-of-the-art code model; 2× L40S recommended for production" },
+  { id:"qwq-32b",             name:"QwQ-32B (Reasoning)",           family:"qwen",     params:"32B",    vramMin:"64 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:3, recGpu:"gx3-48x240x2l40s", reason:"Reasoning model with long CoT outputs; 2× L40S for adequate KV cache" },
+  { id:"qwen2-5-max",         name:"Qwen 2.5 Max (MoE, ~600B)",     family:"qwen",     params:"~600B",  vramMin:"640 GB",  precision:"BF16",      deployTier:"private", tokenClass:4, recGpu:"h200-bm",           reason:"~640 GB MoE model; 8× H200 (1128 GB HBM3e) fits full BF16; tight on H100" },
+  // ── Google Gemma ─────────────────────────────────────────────────────────
+  { id:"gemma2-2b",           name:"Gemma 2 2B Instruct",           family:"gemma",    params:"2B",     vramMin:"5 GB",    precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Very small; 1× L40S serves high concurrency with minimal cost" },
+  { id:"gemma2-9b",           name:"Gemma 2 9B Instruct",           family:"gemma",    params:"9B",     vramMin:"18 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Fits on 1× L40S; excellent quality for size, especially in reasoning" },
+  { id:"gemma2-27b",          name:"Gemma 2 27B Instruct",          family:"gemma",    params:"27B",    vramMin:"54 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:2, recGpu:"gx3-48x240x2l40s", reason:"54 GB BF16 needs 2× L40S; 1× L40S possible with INT8" },
+  { id:"gemma3-1b",           name:"Gemma 3 1B Instruct",           family:"gemma",    params:"1B",     vramMin:"3 GB",    precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Smallest Gemma 3; ideal for edge-like latency at minimal cost" },
+  { id:"gemma3-4b",           name:"Gemma 3 4B Instruct",           family:"gemma",    params:"4B",     vramMin:"8 GB",    precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Compact model with strong multilingual support; 1× L40S" },
+  { id:"gemma3-12b",          name:"Gemma 3 12B Instruct",          family:"gemma",    params:"12B",    vramMin:"24 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:2, recGpu:"gx3-16x80x1l40s",  reason:"24 GB fits on 1× L40S; best Gemma quality-per-dollar for most tasks" },
+  { id:"gemma3-27b",          name:"Gemma 3 27B Instruct",          family:"gemma",    params:"27B",    vramMin:"54 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:2, recGpu:"gx3-48x240x2l40s", reason:"2× L40S for BF16; 1× L40S with INT8 for light workloads" },
+  // ── Microsoft Phi ────────────────────────────────────────────────────────
+  { id:"phi3-mini",           name:"Phi-3 Mini 3.8B Instruct",      family:"phi",      params:"3.8B",   vramMin:"8 GB",    precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Extremely efficient small model; 1× L40S handles high throughput" },
+  { id:"phi3-small",          name:"Phi-3 Small 7B Instruct",       family:"phi",      params:"7B",     vramMin:"14 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Fits on 1× L40S with substantial batch capacity" },
+  { id:"phi3-medium",         name:"Phi-3 Medium 14B Instruct",     family:"phi",      params:"14B",    vramMin:"28 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:2, recGpu:"gx3-16x80x1l40s",  reason:"28 GB fits on 1× L40S; strong reasoning despite size" },
+  { id:"phi4",                name:"Phi-4 14B",                     family:"phi",      params:"14B",    vramMin:"28 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:2, recGpu:"gx3-16x80x1l40s",  reason:"Latest Phi model; fits on 1× L40S with strong STEM/code benchmarks" },
+  { id:"phi4-mini",           name:"Phi-4 Mini 3.8B Instruct",      family:"phi",      params:"3.8B",   vramMin:"8 GB",    precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Compact Phi-4 variant; ideal for low-latency or edge use cases" },
+  // ── Cohere Command ───────────────────────────────────────────────────────
+  { id:"command-r",           name:"Command R (35B)",               family:"command",  params:"35B",    vramMin:"70 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:3, recGpu:"gx3-48x240x2l40s", reason:"2× L40S for BF16; optimized for RAG and enterprise search workflows" },
+  { id:"command-r-plus",      name:"Command R+ (104B)",             family:"command",  params:"104B",   vramMin:"208 GB",  precision:"BF16",      deployTier:"byom",    tokenClass:3, recGpu:"gx3-96x480x4l40s", reason:"4× L40S at INT4/INT8 or A100 BM for BF16; best for enterprise RAG" },
+  { id:"aya-expanse-8b",      name:"Aya Expanse 8B",                family:"command",  params:"8B",     vramMin:"16 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Multilingual model; 1× L40S for high-throughput multilingual tasks" },
+  { id:"aya-expanse-32b",     name:"Aya Expanse 32B",               family:"command",  params:"32B",    vramMin:"64 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:3, recGpu:"gx3-48x240x2l40s", reason:"2× L40S for BF16; 100+ language support with strong quality" },
+  // ── TII Falcon ───────────────────────────────────────────────────────────
+  { id:"falcon-7b",           name:"Falcon 7B Instruct",            family:"falcon",   params:"7B",     vramMin:"14 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Fits on 1× L40S; strong for general text generation" },
+  { id:"falcon-40b",          name:"Falcon 40B Instruct",           family:"falcon",   params:"40B",    vramMin:"80 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:3, recGpu:"gx3-48x240x2l40s", reason:"2× L40S (96 GB) comfortably fits 80 GB model at BF16" },
+  { id:"falcon-180b",         name:"Falcon 180B",                   family:"falcon",   params:"180B",   vramMin:"360 GB",  precision:"BF16",      deployTier:"private", tokenClass:4, recGpu:"h100-bm",           reason:"360 GB fits on 8× H100 (640 GB) or A100 Bare Metal; H200/B300 also viable" },
+  { id:"falcon2-11b",         name:"Falcon 2 11B",                  family:"falcon",   params:"11B",    vramMin:"22 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:2, recGpu:"gx3-16x80x1l40s",  reason:"22 GB fits on 1× L40S; includes multimodal capabilities" },
+  // ── 01.AI Yi ─────────────────────────────────────────────────────────────
+  { id:"yi-6b",               name:"Yi-1.5 6B Chat",                family:"yi",       params:"6B",     vramMin:"12 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Small Yi model; 1× L40S handles large batches efficiently" },
+  { id:"yi-9b",               name:"Yi-1.5 9B Chat",                family:"yi",       params:"9B",     vramMin:"18 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Fits on 1× L40S; strong bilingual (English/Chinese) performance" },
+  { id:"yi-34b",              name:"Yi-1.5 34B Chat",               family:"yi",       params:"34B",    vramMin:"68 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:3, recGpu:"gx3-48x240x2l40s", reason:"2× L40S for BF16; top-tier open model for long-context tasks" },
+  // ── Upstage SOLAR ────────────────────────────────────────────────────────
+  { id:"solar-10b",           name:"SOLAR 10.7B Instruct",          family:"solar",    params:"10.7B",  vramMin:"22 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:2, recGpu:"gx3-16x80x1l40s",  reason:"22 GB fits on 1× L40S; depth-up-scaling gives 13B quality at 10B cost" },
+  { id:"solar-pro",           name:"SOLAR Pro Preview (22B)",       family:"solar",    params:"22B",    vramMin:"44 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:2, recGpu:"gx3-16x80x1l40s",  reason:"44 GB fits on 1× L40S (48 GB) — tight, INT8 recommended for production" },
+  // ── NVIDIA Nemotron ──────────────────────────────────────────────────────
+  { id:"nemotron-4-340b",     name:"Nemotron-4 340B Instruct",      family:"nemotron", params:"340B",   vramMin:"680 GB",  precision:"BF16",      deployTier:"private", tokenClass:4, recGpu:"h100-bm",           reason:"680 GB BF16 fits on 8× H100 (640 GB tight) or comfortably on 8× H200 (1128 GB)" },
+  { id:"nemotron-mini-4b",    name:"Nemotron-Mini 4B Instruct",     family:"nemotron", params:"4B",     vramMin:"8 GB",    precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Compact Nemotron; fits on 1× L40S; strong STEM and chat" },
+  { id:"minitron-8b",         name:"Minitron 8B Instruct",          family:"nemotron", params:"8B",     vramMin:"16 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"Pruned Llama-based model from NVIDIA; 1× L40S is ideal" },
+  { id:"nemotron3-ultra",     name:"Nemotron 3 Ultra 253B",         family:"nemotron", params:"253B",   vramMin:"506 GB",  precision:"BF16",      deployTier:"private", tokenClass:4, recGpu:"h100-bm",           reason:"506 GB fits on 8× H100 (640 GB) or H200; A100 multi-node also viable" },
+  // ── Zhipu GLM ────────────────────────────────────────────────────────────
+  { id:"glm4-9b",             name:"GLM-4-9B Chat",                 family:"glm",      params:"9B",     vramMin:"18 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"9B dense model; 1× L40S handles it with room for KV cache" },
+  { id:"glm4-0520",           name:"GLM-4 0520 (~130B)",            family:"glm",      params:"~130B",  vramMin:"260 GB",  precision:"BF16",      deployTier:"byom",    tokenClass:3, recGpu:"gx3-96x480x4l40s", reason:"Large model; 4× L40S with INT4/INT8 quant or A100 BM" },
+  { id:"glm-z1-9b",           name:"GLM-Z1-9B-0414 (Reasoning)",   family:"glm",      params:"9B",     vramMin:"18 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:2, recGpu:"gx3-16x80x1l40s",  reason:"Reasoning-focused GLM; 1× L40S; uses long chain-of-thought outputs" },
+  { id:"glm-z1-32b",          name:"GLM-Z1-32B-0414 (Reasoning)",  family:"glm",      params:"32B",    vramMin:"64 GB",   precision:"BF16",      deployTier:"dod",     tokenClass:3, recGpu:"gx3-48x240x2l40s", reason:"2× L40S for BF16; strong reasoning with extended thinking" },
+  // ── Moonshot Kimi ────────────────────────────────────────────────────────
+  { id:"kimi-vl-a3b",         name:"Kimi VL A3B Thinking (MoE)",   family:"kimi",     params:"~3B act",vramMin:"20 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:2, recGpu:"gx3-16x80x1l40s",  reason:"Small MoE vision-language model; 1× L40S for multimodal workloads" },
+  { id:"kimi-vl-2b6",         name:"Kimi VL 2.6 (Vision)",         family:"kimi",     params:"~3B",    vramMin:"12 GB",   precision:"BF16",      deployTier:"shared",  tokenClass:2, recGpu:"gx3-16x80x1l40s",  reason:"Compact vision model; fits on 1× L40S easily" },
+  { id:"kimi-3-0",            name:"Kimi 3.0 (MoE, large)",        family:"kimi",     params:"~300B",  vramMin:"320 GB",  precision:"BF16",      deployTier:"private", tokenClass:4, recGpu:"h100-bm",           reason:"~320 GB MoE model; fits on 8× H100 (640 GB) or A100 Bare Metal" },
+  // ── Custom / BYOM ────────────────────────────────────────────────────────
+  { id:"custom-3b",           name:"Custom Fine-tuned 3B (BYOM)",   family:"custom",   params:"3B",     vramMin:"6 GB",    precision:"varies",    deployTier:"byom",    tokenClass:1, recGpu:"gx3-16x80x1l40s",  reason:"1× L40S easily serves a 3B model; high concurrency achievable" },
+  { id:"custom-7b",           name:"Custom Fine-tuned 7B (BYOM)",   family:"custom",   params:"7B",     vramMin:"16 GB",   precision:"varies",    deployTier:"byom",    tokenClass:2, recGpu:"gx3-16x80x1l40s",  reason:"1× L40S handles any 7B model comfortably with serving overhead" },
+  { id:"custom-13b",          name:"Custom Fine-tuned 13B (BYOM)",  family:"custom",   params:"13B",    vramMin:"28 GB",   precision:"varies",    deployTier:"byom",    tokenClass:2, recGpu:"gx3-16x80x1l40s",  reason:"1× L40S (48 GB) fits a 13B model at BF16 with room for KV cache" },
+  { id:"custom-34b",          name:"Custom Fine-tuned 34B (BYOM)",  family:"custom",   params:"34B",    vramMin:"68 GB",   precision:"varies",    deployTier:"byom",    tokenClass:3, recGpu:"gx3-48x240x2l40s", reason:"2× L40S for BF16; INT8 on 1× L40S for lighter loads" },
+  { id:"custom-70b",          name:"Custom Fine-tuned 70B (BYOM)",  family:"custom",   params:"70B",    vramMin:"140 GB",  precision:"BF16",      deployTier:"byom",    tokenClass:3, recGpu:"gx3-96x480x4l40s", reason:"4× L40S for BF16 70B; 2× L40S viable with INT4 quant" },
+  { id:"custom-moe",          name:"Custom MoE Model (BYOM)",       family:"custom",   params:"varies", vramMin:"varies",  precision:"varies",    deployTier:"byom",    tokenClass:3, recGpu:"gx3-96x480x4l40s", reason:"Use 4× L40S as a safe default for MoE models; adjust to actual weight size" },
+];
+
+const GPUS = {
+  "gx3-16x80x1l40s":  { name:"gx3-16x80x1l40s",      label:"1× NVIDIA L40S",           vram:"48 GB GDDR6",   vcpu:"16 vCPU / 80 GB RAM",    hourly:3.29,   tier:"Deploy on Demand / BYOM Lite",      suitableFor:["dod","byom"],     badgeType:"rec"     },
+  "gx3-48x240x2l40s": { name:"gx3-48x240x2l40s",      label:"2× NVIDIA L40S",           vram:"96 GB GDDR6",   vcpu:"48 vCPU / 240 GB RAM",   hourly:6.58,   tier:"Deploy on Demand / BYOM Lite",      suitableFor:["dod","byom"],     badgeType:"alt"     },
+  "gx3-96x480x4l40s": { name:"gx3-96x480x4l40s",      label:"4× NVIDIA L40S",           vram:"192 GB GDDR6",  vcpu:"96 vCPU / 480 GB RAM",   hourly:13.16,  tier:"Deploy on Demand / BYOM Lite",      suitableFor:["dod","byom"],     badgeType:"alt"     },
+  "a100-bm":          { name:"A100 Bare Metal",        label:"4× NVIDIA A100 80GB NVL",  vram:"320 GB HBM2e",  vcpu:"96 cores / 768 GB RAM",  hourly:null,   tier:"BYOM Enterprise / Private",         suitableFor:["byom","private"], badgeType:"large"   },
+  "h100-bm":          { name:"H100 Bare Metal",        label:"8× NVIDIA H100 SXM5",      vram:"640 GB HBM3",   vcpu:"160 vCPU / 1792 GB RAM", hourly:null,   tier:"Private / BYOM Enterprise",         suitableFor:["private"],        badgeType:"private" },
+  "h200-bm":          { name:"H200 Bare Metal",        label:"8× NVIDIA H200 SXM5",      vram:"1128 GB HBM3e", vcpu:"160 vCPU / 2048 GB RAM", hourly:null,   tier:"Private / BYOM Enterprise",         suitableFor:["private"],        badgeType:"private" },
+  "b300-bm":          { name:"B300 Bare Metal",        label:"8× NVIDIA B300 SXM6",      vram:"1440 GB HBM3e", vcpu:"192 vCPU / 2304 GB RAM", hourly:null,   tier:"Private / Next-Gen AI",             suitableFor:["private"],        badgeType:"private" },
+  "shared-pool":      { name:"Shared GPU Pool",        label:"Multi-tenant GPU",         vram:"N/A",           vcpu:"Shared",                 hourly:null,   tier:"Shared Inference",                  suitableFor:["shared"],         badgeType:"alt"     },
+};
+
+// GPU alternatives shown per recommended GPU
+const GPU_ALTERNATIVES = {
+  "gx3-16x80x1l40s":  ["gx3-16x80x1l40s","gx3-48x240x2l40s","gx3-96x480x4l40s","a100-bm"],
+  "gx3-48x240x2l40s": ["gx3-48x240x2l40s","gx3-16x80x1l40s","gx3-96x480x4l40s","a100-bm"],
+  "gx3-96x480x4l40s": ["gx3-96x480x4l40s","gx3-48x240x2l40s","a100-bm","h100-bm"],
+  "a100-bm":          ["a100-bm","gx3-96x480x4l40s","h100-bm","h200-bm"],
+  "h100-bm":          ["h100-bm","a100-bm","h200-bm","b300-bm"],
+  "h200-bm":          ["h200-bm","h100-bm","b300-bm","a100-bm"],
+  "b300-bm":          ["b300-bm","h200-bm","h100-bm"],
+  "shared-pool":      ["shared-pool","gx3-16x80x1l40s","gx3-48x240x2l40s"],
+};
+
+// =========================================================
+// STATE
+// =========================================================
+let selectedModel = null;
+let selectedGpuKey = null;
+let priceMode = "catalog";
+let hoursPerDay = 24;
+
+// =========================================================
+// INIT
+// =========================================================
+window.addEventListener("DOMContentLoaded", () => {
+  populateModelSelect("");
+});
+
+function populateModelSelect(family) {
+  const sel = document.getElementById("model-select");
+  sel.innerHTML = '<option value="">— choose a model —</option>';
+  MODELS.filter(m => !family || m.family === family).forEach(m => {
+    const opt = document.createElement("option");
+    opt.value = m.id;
+    opt.textContent = m.name;
+    sel.appendChild(opt);
+  });
+  if (selectedModel) {
+    sel.value = selectedModel.id;
+  }
+}
+
+function filterModels() {
+  const fam = document.getElementById("model-category").value;
+  populateModelSelect(fam);
+}
+
+// =========================================================
+// MODEL SELECTION
+// =========================================================
+function onModelSelect() {
+  const sel = document.getElementById("model-select");
+  const modelId = sel.value;
+  if (!modelId) { selectedModel = null; lockSections(); return; }
+
+  selectedModel = MODELS.find(m => m.id === modelId);
+  if (!selectedModel) return;
+
+  // Show model info
+  document.getElementById("mi-params").textContent    = selectedModel.params;
+  document.getElementById("mi-vram").textContent      = selectedModel.vramMin;
+  document.getElementById("mi-precision").textContent = selectedModel.precision;
+  document.getElementById("mi-deploy").textContent    = { shared:"Shared", dod:"Deploy on Demand", byom:"BYOM", private:"Private" }[selectedModel.deployTier] || selectedModel.deployTier;
+  document.getElementById("model-info").classList.remove("hidden");
+
+  // Unlock subsequent sections
+  document.getElementById("card-gpu").classList.add("unlocked");
+  document.getElementById("card-config").classList.add("unlocked");
+
+  // Show GPU recommendations
+  renderGpuOptions(selectedModel);
+
+  // Pre-set hosting type
+  const hostingMap = { shared:"shared", dod:"dod", byom:"byom", private:"private" };
+  document.getElementById("hosting-type").value = hostingMap[selectedModel.deployTier] || "shared";
+  onHostingTypeChange();
+
+  // Set token class
+  const classEl = document.getElementById("token-class");
+  classEl.value = String(selectedModel.tokenClass === 1 ? 0.35 : selectedModel.tokenClass === 2 ? 0.60 : selectedModel.tokenClass === 3 ? 1.20 : selectedModel.tokenClass === 4 ? 5.00 : 1.20);
+
+  updateSteps(2);
+}
+
+function lockSections() {
+  document.getElementById("card-gpu").classList.remove("unlocked");
+  document.getElementById("card-config").classList.remove("unlocked");
+  document.getElementById("card-results").classList.add("hidden");
+  document.getElementById("model-info").classList.add("hidden");
+  updateSteps(1);
+}
+
+// =========================================================
+// GPU OPTIONS
+// =========================================================
+function renderGpuOptions(model) {
+  const recKey = model.recGpu;
+  const recGpu = GPUS[recKey];
+
+  // Banner
+  const banner = document.getElementById("gpu-rec-banner");
+  banner.classList.add("visible");
+  document.getElementById("rec-main").textContent = `${recGpu.label}  (${recGpu.name})`;
+  document.getElementById("rec-sub").textContent  = model.reason;
+
+  // Options grid
+  const altKeys = GPU_ALTERNATIVES[recKey] || [recKey];
+  const grid = document.getElementById("gpu-options-grid");
+  grid.innerHTML = "";
+
+  altKeys.forEach(key => {
+    const g = GPUS[key];
+    if (!g) return;
+    const isRec = key === recKey;
+    const card = document.createElement("div");
+    card.className = "alt-card" + (isRec ? " recommended" : "") + (selectedGpuKey === key ? " selected" : "");
+    card.onclick = () => selectGpu(key);
+
+    const badgeClass = isRec ? "rec" : g.badgeType === "large" ? "large" : g.badgeType === "private" ? "private" : "alt";
+    const badgeText  = isRec ? "✓ Recommended" : g.badgeType === "large" ? "Large Scale" : g.badgeType === "private" ? "Private" : "Alternative";
+
+    const priceStr = g.hourly ? `$${g.hourly.toFixed(2)}/hr` : "Custom quote";
+
+    card.innerHTML = `
+      <div class="alt-label ${badgeClass}">${badgeText}</div>
+      <div class="alt-name">${g.label}</div>
+      <div class="alt-gpu">${g.vram} · ${g.vcpu}</div>
+      <div class="alt-price">${priceStr}</div>
+      <div class="alt-tier">${g.tier}</div>
+    `;
+    grid.appendChild(card);
+  });
+
+  // Auto-select recommended
+  selectGpu(recKey, false);
+}
+
+function selectGpu(key, recalc = true) {
+  selectedGpuKey = key;
+  const gpu = GPUS[key];
+
+  // Update card highlight
+  document.querySelectorAll(".alt-card").forEach(c => c.classList.remove("selected"));
+  const cards = document.querySelectorAll(".alt-card");
+  const altKeys = GPU_ALTERNATIVES[selectedModel?.recGpu || key] || [key];
+  const idx = altKeys.indexOf(key);
+  if (idx >= 0 && cards[idx]) cards[idx].classList.add("selected");
+
+  // Update summary
+  const summary = document.getElementById("selected-gpu-summary");
+  summary.classList.remove("hidden");
+  document.getElementById("sel-gpu-name").textContent    = gpu.label;
+  document.getElementById("sel-gpu-details").textContent = `${gpu.vram} · ${gpu.vcpu} · ${gpu.hourly ? "$" + gpu.hourly.toFixed(2) + "/hr" : "Custom pricing"}`;
+
+  // Update catalog rate inputs (node-hour tiers)
+  if (gpu.hourly) {
+    document.getElementById("catalog-rate").value  = gpu.hourly.toFixed(2);
+    document.getElementById("reserved-rate").value = (gpu.hourly * 0.65).toFixed(2);
+  }
+
+  // Pre-fill private node rate estimate for H100/H200/B300
+  const privateRateEstimates = {
+    "h100-bm": 20.00,
+    "h200-bm": 29.00,
+    "b300-bm": 40.00,
+    "a100-bm": 14.00,
+  };
+  if (privateRateEstimates[key] !== undefined) {
+    document.getElementById("private-node-rate").value = privateRateEstimates[key].toFixed(2);
+  }
+
+  // Auto-adjust hosting type based on GPU suitability
+  if (gpu.suitableFor.length === 1) {
+    document.getElementById("hosting-type").value = gpu.suitableFor[0];
+    onHostingTypeChange();
+  } else if (selectedModel) {
+    const hostingMap = { shared:"shared", dod:"dod", byom:"byom", private:"private" };
+    const preferred = hostingMap[selectedModel.deployTier];
+    if (gpu.suitableFor.includes(preferred)) {
+      document.getElementById("hosting-type").value = preferred;
+    } else {
+      document.getElementById("hosting-type").value = gpu.suitableFor[0];
+    }
+    onHostingTypeChange();
+  }
+
+  updateSteps(3);
+  if (recalc) calculate();
+}
+
+// =========================================================
+// HOSTING TYPE CHANGE
+// =========================================================
+function onHostingTypeChange() {
+  const t = document.getElementById("hosting-type").value;
+  document.getElementById("shared-config").style.display  = t === "shared"  ? "" : "none";
+  document.getElementById("node-config").style.display    = (t === "dod" || t === "byom") ? "" : "none";
+  document.getElementById("private-config").style.display = t === "private"  ? "" : "none";
+  document.getElementById("byom-platform-group").style.display = t === "byom" ? "" : "none";
+  calculate();
+}
+
+// =========================================================
+// UTILIZATION
+// =========================================================
+function onUtilChange(val) {
+  hoursPerDay = parseInt(val);
+  const label = hoursPerDay === 24 ? "24 hrs/day (always-on)" : `${hoursPerDay} hr${hoursPerDay>1?"s":""}/day`;
+  document.getElementById("util-label").textContent = label;
+  calculate();
+}
+
+// =========================================================
+// PRICE MODE
+// =========================================================
+function setPriceMode(mode) {
+  priceMode = mode;
+  document.getElementById("tab-catalog").classList.toggle("active", mode === "catalog");
+  document.getElementById("tab-custom").classList.toggle("active",  mode === "custom");
+  document.getElementById("tab-reserved").classList.toggle("active",mode === "reserved");
+  document.getElementById("custom-rate-group").style.display  = mode === "custom"   ? "" : "none";
+  document.getElementById("reserved-rate-group").style.display= mode === "reserved" ? "" : "none";
+  calculate();
+}
+
+// Token class custom
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("token-class").addEventListener("change", function() {
+    document.getElementById("custom-token-group").style.display = this.value === "custom" ? "" : "none";
+    calculate();
+  });
+});
+
+// =========================================================
+// CALCULATE
+// =========================================================
+function calculate() {
+  if (!selectedModel) return;
+
+  const hoursPerMonth = hoursPerDay * 30.44;
+  const hostingType   = document.getElementById("hosting-type").value;
+  const rows = [];
+  let totalMonthly = 0;
+
+  if (hostingType === "shared") {
+    // Token-based
+    let inputRatePerM = parseFloat(document.getElementById("token-class").value);
+    if (isNaN(inputRatePerM)) inputRatePerM = parseFloat(document.getElementById("custom-token-rate").value) || 1.20;
+    const outputRatio     = parseFloat(document.getElementById("output-ratio").value) || 1.5;
+    const inputTokensM    = parseFloat(document.getElementById("tokens-monthly").value) || 500;
+    const outputTokensM   = inputTokensM * outputRatio;
+    const outputRatePerM  = inputRatePerM * 2;
+    const ptHours         = parseFloat(document.getElementById("prompt-tuning-hours").value) || 0;
+    const ptCost          = ptHours * 2.50; // approx $2.50/hr for prompt tuning compute
+
+    const inputCost   = inputTokensM  * inputRatePerM;
+    const outputCost  = outputTokensM * outputRatePerM;
+
+    rows.push({ item:"Input tokens", rate:`$${inputRatePerM.toFixed(2)}/1M tokens`, qty:`${inputTokensM.toFixed(0)}M tokens`, cost: inputCost });
+    rows.push({ item:"Output tokens", rate:`$${outputRatePerM.toFixed(2)}/1M tokens`, qty:`${outputTokensM.toFixed(1)}M tokens`, cost: outputCost });
+    if (ptHours > 0) rows.push({ item:"Prompt tuning compute", rate:"~$2.50/hr", qty:`${ptHours} hrs`, cost: ptCost });
+    totalMonthly = inputCost + outputCost + ptCost;
+
+  } else if (hostingType === "dod" || hostingType === "byom") {
+    // Node-hour
+    const gpu = GPUS[selectedGpuKey];
+    let rate;
+    if (priceMode === "catalog")  rate = gpu?.hourly || parseFloat(document.getElementById("catalog-rate").value) || 3.29;
+    else if (priceMode === "custom")   rate = parseFloat(document.getElementById("custom-node-rate").value) || 3.29;
+    else                               rate = parseFloat(document.getElementById("reserved-rate").value) || 2.14;
+
+    const nodeCount    = parseInt(document.getElementById("node-count").value) || 1;
+    const nodeCost     = rate * nodeCount * hoursPerMonth;
+    rows.push({ item:`${gpu?.label || "GPU node"} (${nodeCount} node${nodeCount>1?"s":""})`, rate:`$${rate.toFixed(2)}/hr × ${nodeCount}`, qty:`${hoursPerMonth.toFixed(0)} hrs`, cost: nodeCost });
+
+    if (hostingType === "byom") {
+      const platformFee = parseFloat(document.getElementById("byom-platform-fee").value) || 0;
+      if (platformFee > 0) rows.push({ item:"watsonx.ai Platform Fee", rate:"flat/month", qty:"1 month", cost: platformFee });
+      totalMonthly = nodeCost + platformFee;
+    } else {
+      totalMonthly = nodeCost;
+    }
+
+  } else if (hostingType === "private") {
+    const rate      = parseFloat(document.getElementById("private-node-rate").value) || 8.50;
+    const nodeCount = parseInt(document.getElementById("private-node-count").value) || 2;
+    const nodeCost  = rate * nodeCount * hoursPerMonth;
+    rows.push({ item:`Private GPU nodes (${nodeCount})`, rate:`$${rate.toFixed(2)}/hr × ${nodeCount} (est.)`, qty:`${hoursPerMonth.toFixed(0)} hrs`, cost: nodeCost });
+    rows.push({ item:"Platform + support (est.)", rate:"flat/month", qty:"1 month", cost: 5000 });
+    totalMonthly = nodeCost + 5000;
+  }
+
+  // Render
+  const tbody = document.getElementById("breakdown-body");
+  tbody.innerHTML = "";
+  rows.forEach(r => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${r.item}</td><td>${r.rate}</td><td>${r.qty}</td><td><strong>$${r.cost.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2})}</strong></td>`;
+    tbody.appendChild(tr);
+  });
+
+  const fmt = n => "$" + n.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById("r-monthly").textContent   = fmt(totalMonthly);
+  document.getElementById("r-daily").textContent     = fmt(totalMonthly / 30.44);
+  document.getElementById("r-annual").textContent    = fmt(totalMonthly * 12);
+  document.getElementById("breakdown-total").textContent = fmt(totalMonthly);
+
+  const subMap = { shared:"token-based billing", dod:"dedicated GPU node", byom:"BYOM node-hour + platform", private:"private cluster estimate" };
+  document.getElementById("r-monthly-sub").textContent = subMap[hostingType] || "";
+  document.getElementById("r-daily-sub").textContent   = `${hoursPerDay} hrs/day utilization`;
+
+  const noteEl = document.getElementById("result-notes");
+  if (hostingType === "private") {
+    noteEl.textContent = "Private deployment costs are rough estimates. Actual pricing requires an IBM Sales engagement and includes negotiated discounts, support tiers, and contract terms.";
+  } else if (hostingType === "byom") {
+    noteEl.textContent = "BYOM pricing reflects node-hour costs on IBM Cloud VPC GPU infrastructure plus estimated watsonx.ai Enterprise plan fees. Verify current plan pricing with IBM Cloud.";
+  } else if (hostingType === "shared") {
+    noteEl.textContent = "Shared inference billed per token. Output tokens are billed at approximately 2× the input rate. Prompt tuning compute is billed separately per training hour.";
+  } else {
+    noteEl.textContent = "Deploy on Demand bills by the hour while the node is active. Reserved instance pricing (~35% off) available for 1-year commitments via IBM Cloud.";
+  }
+
+  const resultsCard = document.getElementById("card-results");
+  resultsCard.classList.remove("hidden");
+  resultsCard.classList.add("unlocked");
+  updateSteps(4);
+}
+
+// =========================================================
+// HELPERS
+// =========================================================
+function updateSteps(active) {
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById(`step${i}`);
+    el.className = "step" + (i < active ? " done" : i === active ? " active" : "");
+  }
+}
+
+function resetAll() {
+  selectedModel = null;
+  selectedGpuKey = null;
+  priceMode = "catalog";
+  hoursPerDay = 24;
+  document.getElementById("model-category").value = "";
+  document.getElementById("model-select").value = "";
+  document.getElementById("model-info").classList.add("hidden");
+  document.getElementById("gpu-rec-banner").classList.remove("visible");
+  document.getElementById("gpu-options-grid").innerHTML = "";
+  document.getElementById("selected-gpu-summary").classList.add("hidden");
+  document.getElementById("card-gpu").classList.remove("unlocked");
+  document.getElementById("card-config").classList.remove("unlocked");
+  document.getElementById("card-results").classList.add("hidden");
+  document.getElementById("card-results").classList.remove("unlocked");
+  document.getElementById("utilization").value = 24;
+  document.getElementById("util-label").textContent = "24 hrs/day (always-on)";
+  updateSteps(1);
+  populateModelSelect("");
+}
+</script>
+</body>
+</html>
